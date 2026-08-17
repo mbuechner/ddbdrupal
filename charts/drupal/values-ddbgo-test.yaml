@@ -1,0 +1,22 @@
+# DDBgo test profile.
+nameOverride: ddbgo
+
+naming:
+  allowedReleaseNames:
+    - ddbgo-t
+
+commonAnnotations:
+  dnb.contact/emails: m.buechner@dnb.de
+  dnb.contact/persons: Michael Büchner
+
+drupal:
+  externalHost: go-t.deutsche-digitale-bibliothek.de
+  image:
+    repository: ghcr.io/mbuechner/ddbgo
+    tag: test
+    pullPolicy: Always
+
+database:
+  auth:
+    database: ddbgodb
+    username: ddbgo

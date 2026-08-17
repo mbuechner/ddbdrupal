@@ -1,0 +1,81 @@
+name: Lint Helm chart
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - gh-pages
+
+permissions:
+  contents: read
+
+env:
+  CHART_DIR: charts/drupal
+  HELM_VERSION: v4.2.0
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install Helm
+        uses: azure/setup-helm@v5.0.0
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Lint all supplied profiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          for profile in "" \
+            values-ddbgo.yaml \
+            values-ddbgo-test.yaml \
+            values-ddbpro.yaml \
+            values-ddbpro-test.yaml; do
+            args=(
+              "$CHART_DIR"
+              --namespace test-release
+              --set naming.enforceReleaseNamespaceMatch=false
+              --set 'naming.allowedReleaseNames={test-release}'
+              --strict
+            )
+            if [[ -n "$profile" ]]; then
+              args+=(--values "$CHART_DIR/$profile")
+            fi
+            helm lint "${args[@]}"
+          done
+
+      - name: Render OpenShift and Kubernetes manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for profile in \
+            values-ddbgo.yaml \
+            values-ddbgo-test.yaml \
+            values-ddbpro.yaml \
+            values-ddbpro-test.yaml; do
+            case "$profile" in
+              values-ddbgo.yaml) release=ddbgo ;;
+              values-ddbgo-test.yaml) release=ddbgo-t ;;
+              values-ddbpro.yaml) release=ddbpro ;;
+              values-ddbpro-test.yaml) release=ddbpro-t ;;
+            esac
+            helm template "$release" "$CHART_DIR" \
+              --namespace "$release" \
+              --values "$CHART_DIR/$profile" >/dev/null
+          done
+
+          kubernetes_render="$RUNNER_TEMP/drupal-kubernetes.yaml"
+          helm template ddbgo "$CHART_DIR" \
+            --namespace ddbgo \
+            --values "$CHART_DIR/values-ddbgo.yaml" \
+            --values "$CHART_DIR/values-kubernetes.yaml" >"$kubernetes_render"
+          if grep -Eq 'route\.openshift\.io|image\.openshift\.io' "$kubernetes_render"; then
+            echo '::error::Kubernetes profile contains an OpenShift API or trigger annotation.'
+            exit 1
+          fi
+
+      - name: Package chart
+        run: helm package "$CHART_DIR" --destination "${{ runner.temp }}"

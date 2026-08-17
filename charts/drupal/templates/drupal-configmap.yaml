@@ -1,0 +1,30 @@
+{{- $name := include "drupal.drupalName" . -}}
+{{- include "drupal.assertAvailable" (dict "root" . "apiVersion" "v1" "kind" "ConfigMap" "name" $name) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "drupal.labels" . | nindent 4 }}
+    app.kubernetes.io/component: drupal
+  annotations:
+    {{- include "drupal.protectionAnnotations" . | nindent 4 }}
+data:
+  MYSQL_HOSTNAME: {{ include "drupal.databaseName" . | quote }}
+  MYSQL_PORT: "3306"
+  USE_REDIS: {{ ternary "true" "false" .Values.redis.enabled | quote }}
+  REDIS_HOST: {{ include "drupal.redisName" . | quote }}
+  REDIS_PORT: "6379"
+  UPDATE_FREE_ACCESS: {{ .Values.drupal.config.updateFreeAccess | quote }}
+  FILE_PUBLIC_PATH: {{ .Values.drupal.config.filePublicPath | quote }}
+  FILE_PRIVATE_PATH: {{ .Values.drupal.config.filePrivatePath | quote }}
+  TRUSTED_HOST_PATTERNS: {{ include "drupal.drupalTrustedHostPatterns" . | quote }}
+  DRUSH_OPTIONS_URI: {{ .Values.drupal.config.drushOptionsUri | quote }}
+  TMP: {{ .Values.drupal.config.tempPath | quote }}
+  UPDATEDB_ON_STARTUP: {{ .Values.drupal.env.UPDATEDB_ON_STARTUP | quote }}
+  CONFIG_IMPORT_ON_STARTUP: {{ .Values.drupal.env.CONFIG_IMPORT_ON_STARTUP | quote }}
+  CACHEREBUILD_ON_STARTUP: {{ .Values.drupal.env.CACHEREBUILD_ON_STARTUP | quote }}
+  {{- with .Values.drupal.env.HTPASSWD_GREETING }}
+  HTPASSWD_GREETING: {{ . | quote }}
+  {{- end }}

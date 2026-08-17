@@ -1,0 +1,26 @@
+{{- if and (eq .Values.platform.type "openshift") .Values.drupal.route.enabled }}
+{{- $name := .Values.drupal.externalHost -}}
+{{- include "drupal.assertAvailable" (dict "root" . "apiVersion" "route.openshift.io/v1" "kind" "Route" "name" $name) }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "drupal.labels" . | nindent 4 }}
+    app.kubernetes.io/component: drupal
+  annotations:
+    {{- include "drupal.protectionAnnotations" . | nindent 4 }}
+    {{- with .Values.drupal.route.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  host: {{ .Values.drupal.externalHost }}
+  to:
+    kind: Service
+    name: {{ include "drupal.drupalName" . }}
+    weight: 100
+  port:
+    targetPort: http
+  wildcardPolicy: None
+{{- end }}

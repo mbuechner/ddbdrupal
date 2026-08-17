@@ -1,0 +1,21 @@
+# DDBpro production profile. Set the real external host before installation.
+nameOverride: ddbpro
+
+naming:
+  allowedReleaseNames:
+    - ddbpro
+
+commonAnnotations:
+  dnb.contact/emails: m.buechner@dnb.de
+  dnb.contact/persons: Michael Büchner
+
+drupal:
+  externalHost: ddbpro.example.invalid
+  image:
+    repository: ghcr.io/deutsche-digitale-bibliothek/ddbpro
+    tag: tagged
+
+database:
+  auth:
+    database: ddbprodb
+    username: ddbpro

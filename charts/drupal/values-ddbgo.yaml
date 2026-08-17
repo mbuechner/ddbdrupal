@@ -1,0 +1,21 @@
+# DDBgo production profile.
+nameOverride: ddbgo
+
+naming:
+  allowedReleaseNames:
+    - ddbgo
+
+commonAnnotations:
+  dnb.contact/emails: m.buechner@dnb.de
+  dnb.contact/persons: Michael Büchner
+
+drupal:
+  externalHost: go.deutsche-digitale-bibliothek.de
+  image:
+    repository: ghcr.io/mbuechner/ddbgo
+    tag: tagged
+
+database:
+  auth:
+    database: ddbgodb
+    username: ddbgo

@@ -1,0 +1,16 @@
+apiVersion: v2
+name: drupal
+description: Reusable Kubernetes and OpenShift environment for Drupal with Redis and MariaDB
+type: application
+version: 0.1.0
+appVersion: "11"
+kubeVersion: ">=1.25.0-0"
+maintainers:
+  - name: Michael Büchner
+    email: m.buechner@dnb.de
+    url: https://github.com/mbuechner
+annotations:
+  charts.openshift.io/name: Drupal
+  charts.openshift.io/provider: Deutsche Digitale Bibliothek
+  charts.openshift.io/description: Reusable Kubernetes and OpenShift environment for Drupal with Redis and MariaDB
+  drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
