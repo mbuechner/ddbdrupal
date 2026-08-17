@@ -21,7 +21,9 @@ helm upgrade --install ddbpro . -n ddbpro -f values-ddbpro.yaml \
 
 Für Standard-Kubernetes `values-kubernetes.yaml` als letzte Values-Datei
 ergänzen. Sie deaktiviert OpenShift ImageStreams und erzeugt statt einer Route
-ein Ingress.
+ein Ingress. Zusätzlich verwendet sie `ReadWriteOnce`, setzt die numerischen
+Benutzer und Gruppen der offiziellen Redis-/MariaDB-Images und deaktiviert VPA,
+solange dessen Operator nicht ausdrücklich installiert wurde.
 
 ## Wichtige Values
 
@@ -42,10 +44,19 @@ bestehender DDBgo-Deployments bei einem Upgrade gleich bleiben.
 
 ## Persistenz und Secrets
 
-Das Chart erzeugt je einen PVC für Drupal, Redis und MariaDB. Standardmäßig ist
-`ReadWriteMany` erforderlich. Erzeugte PVCs und Secrets werden bei
+Das Chart erzeugt je einen PVC für Drupal, Redis und MariaDB. Die OpenShift-
+Standardwerte verwenden aus Kompatibilitätsgründen `ReadWriteMany`; das
+Kubernetes-Profil verwendet für die einzelnen Pods `ReadWriteOnce`. Mehrere
+Drupal-Replikate benötigen weiterhin RWX und werden entsprechend validiert.
+Erzeugte PVCs und Secrets werden bei
 `helm uninstall` behalten und bei einer Neuinstallation desselben Releases
 wiederverwendet. Fremde gleichnamige Ressourcen werden nicht übernommen.
+
+Der Kubernetes-Storage-Provisioner muss das Drupal-Volume für die UID/GID des
+verwendeten Anwendungsimages beschreibbar bereitstellen. Falls er das nicht
+automatisch tut, muss unter `drupal.podSecurityContext` eine zum Image passende
+`fsGroup` gesetzt werden. Redis und MariaDB werden im Kubernetes-Profil bereits
+mit den Gruppen ihrer offiziellen Images konfiguriert.
 
 Für extern verwaltete Objekte stehen `existingClaim` und `existingSecret` zur
 Verfügung. Erwartete Secret-Schlüssel:
@@ -59,14 +70,21 @@ Verfügung. Erwartete Secret-Schlüssel:
 
 ## Sicherheit und Betrieb
 
-Die Pods laufen ohne feste UID/GID, ohne zusätzliche Linux-Capabilities, mit
-`RuntimeDefault`-Seccomp und ohne Service-Account-Token. Dies ist mit der
-OpenShift `restricted` SCC und Kubernetes Pod Security kompatibel.
+Die OpenShift-Profile laufen ohne feste UID/GID; das Kubernetes-Profil setzt nur
+für die offiziellen Redis- und MariaDB-Images deren numerische Identitäten. Alle
+Container laufen ohne zusätzliche Linux-Capabilities, mit `RuntimeDefault`-
+Seccomp und ohne Service-Account-Token. Dies ist mit der OpenShift `restricted`
+SCC und Kubernetes Pod Security kompatibel.
 
 OpenShift ImageStreams können bewegliche Tags regelmäßig importieren und über
 Image-Change-Trigger Rollouts starten. Auf Kubernetes lädt `pullPolicy: Always`
 bei einem Podstart den aktuellen Digest; automatische Rollouts benötigen dort
 einen separaten GitOps- oder Image-Automation-Controller.
+
+Änderungen an der vom Chart erzeugten Drupal-ConfigMap lösen über deren
+Prüfsumme automatisch einen neuen Drupal-Rollout aus. Die Rotation extern
+verwalteter Secrets erfordert weiterhin einen expliziten Pod-Restart oder einen
+dafür vorgesehenen Controller.
 
 Die Variablen `UPDATEDB_ON_STARTUP`, `CONFIG_IMPORT_ON_STARTUP` und
 `CACHEREBUILD_ON_STARTUP` akzeptieren ausschließlich `yes` oder `no` und stehen

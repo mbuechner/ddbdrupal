@@ -193,8 +193,9 @@ drupal:
     # demselben Release und Namespace übernimmt diesen PVC wieder.
     retain: true
     existingClaim: ""
-    # Shared Access: ReadWriteMany ist verpflichtend und wird validiert. Die
-    # StorageClass muss diesen Access Mode unterstützen.
+    # ReadWriteMany ermöglicht mehrere Drupal-Replikate und bleibt für die
+    # OpenShift-Profile der kompatible Standard. Bei replicaCount > 1 wird RWX
+    # validiert; das Kubernetes-Profil verwendet für eine Replik RWO.
     accessModes:
       - ReadWriteMany
     size: 5Gi
@@ -259,8 +260,8 @@ redis:
     # Übernahme durch denselben Release-Namen im selben Namespace.
     retain: true
     existingClaim: ""
-    # Shared Access: ReadWriteMany ist verpflichtend und wird validiert. Die
-    # StorageClass muss diesen Access Mode unterstützen.
+    # Kompatibler OpenShift-Standard. Da Redis hier genau eine Replik besitzt,
+    # überschreibt das Kubernetes-Profil den Access Mode mit ReadWriteOnce.
     accessModes:
       - ReadWriteMany
     size: 2Gi
@@ -333,8 +334,8 @@ database:
     # Übernahme durch denselben Release-Namen im selben Namespace.
     retain: true
     existingClaim: ""
-    # Shared Access: ReadWriteMany ist verpflichtend und wird validiert. Die
-    # StorageClass muss diesen Access Mode unterstützen.
+    # Kompatibler OpenShift-Standard. Da MariaDB hier genau eine Replik besitzt,
+    # überschreibt das Kubernetes-Profil den Access Mode mit ReadWriteOnce.
     accessModes:
       - ReadWriteMany
     size: 10Gi

@@ -2,9 +2,14 @@ name: Lint Helm chart
 
 on:
   pull_request:
+    branches:
+      - main
   push:
-    branches-ignore:
-      - gh-pages
+    branches:
+      - main
+    paths:
+      - charts/drupal/**
+      - .github/workflows/lint.yml
 
 permissions:
   contents: read
@@ -74,6 +79,30 @@ jobs:
             --values "$CHART_DIR/values-kubernetes.yaml" >"$kubernetes_render"
           if grep -Eq 'route\.openshift\.io|image\.openshift\.io' "$kubernetes_render"; then
             echo '::error::Kubernetes profile contains an OpenShift API or trigger annotation.'
+            exit 1
+          fi
+
+          no_redis_render="$RUNNER_TEMP/drupal-no-redis.yaml"
+          helm template no-redis "$CHART_DIR" \
+            --namespace no-redis \
+            --set redis.enabled=false >"$no_redis_render"
+          if grep -Eq '^  name: no-redis-redis$' "$no_redis_render"; then
+            echo '::error::redis.enabled=false still renders a Redis resource.'
+            exit 1
+          fi
+
+          if helm template invalid-kubernetes "$CHART_DIR" \
+            --namespace invalid-kubernetes \
+            --set platform.type=kubernetes >/dev/null 2>&1; then
+            echo '::error::The official Redis image was accepted on Kubernetes without an explicit runAsUser.'
+            exit 1
+          fi
+
+          if helm template scaled-drupal "$CHART_DIR" \
+            --namespace scaled-drupal \
+            --values "$CHART_DIR/values-kubernetes.yaml" \
+            --set drupal.replicaCount=2 >/dev/null 2>&1; then
+            echo '::error::Multiple Drupal replicas were accepted without ReadWriteMany storage.'
             exit 1
           fi
 

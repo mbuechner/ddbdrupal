@@ -3,8 +3,7 @@ name: Publish Helm chart
 on:
   push:
     branches:
-      - master
-      - test
+      - main
     paths:
       - charts/drupal/**
       - .github/workflows/publish.yml
@@ -70,6 +69,30 @@ jobs:
             exit 1
           fi
 
+          no_redis_render="$RUNNER_TEMP/drupal-no-redis.yaml"
+          helm template no-redis "$CHART_DIR" \
+            --namespace no-redis \
+            --set redis.enabled=false >"$no_redis_render"
+          if grep -Eq '^  name: no-redis-redis$' "$no_redis_render"; then
+            echo '::error::redis.enabled=false still renders a Redis resource.'
+            exit 1
+          fi
+
+          if helm template invalid-kubernetes "$CHART_DIR" \
+            --namespace invalid-kubernetes \
+            --set platform.type=kubernetes >/dev/null 2>&1; then
+            echo '::error::The official Redis image was accepted on Kubernetes without an explicit runAsUser.'
+            exit 1
+          fi
+
+          if helm template scaled-drupal "$CHART_DIR" \
+            --namespace scaled-drupal \
+            --values "$CHART_DIR/values-kubernetes.yaml" \
+            --set drupal.replicaCount=2 >/dev/null 2>&1; then
+            echo '::error::Multiple Drupal replicas were accepted without ReadWriteMany storage.'
+            exit 1
+          fi
+
       - name: Resolve release channel and package chart
         id: chart
         shell: bash
@@ -85,22 +108,14 @@ jobs:
             exit 1
           fi
 
-          case "$GITHUB_REF_NAME" in
-            test)
-              channel="test"
-              pages_channel="test"
-              chart_version="${base_version}-test.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}.sha${GITHUB_SHA::7}"
-              ;;
-            master)
-              channel="production"
-              pages_channel="stable"
-              chart_version="$base_version"
-              ;;
-            *)
-              echo "::error::Publishing is allowed only from the test or master branch."
-              exit 1
-              ;;
-          esac
+          if [[ "$GITHUB_REF_NAME" != "main" ]]; then
+            echo "::error::Publishing is allowed only from the main branch."
+            exit 1
+          fi
+
+          channel="stable"
+          pages_channel="stable"
+          chart_version="$base_version"
 
           package="$package_dir/${chart_name}-${chart_version}.tgz"
           repository="oci://${REGISTRY}/${owner}/${OCI_NAMESPACE}"
@@ -239,10 +254,9 @@ jobs:
           if [[ ! -f "$pages_dir/index.html" ]]; then
             printf '%s\n' \
               '<!doctype html>' \
-              '<html lang="de"><head><meta charset="utf-8"><title>Drupal Helm repositories</title></head>' \
-              '<body><h1>Drupal Helm repositories</h1><ul>' \
+              '<html lang="de"><head><meta charset="utf-8"><title>Drupal Helm repository</title></head>' \
+              '<body><h1>Drupal Helm repository</h1><ul>' \
               '<li><a href="helm/stable/index.yaml">Stable</a></li>' \
-              '<li><a href="helm/test/index.yaml">Test</a></li>' \
               '</ul></body></html>' > "$pages_dir/index.html"
           fi
 

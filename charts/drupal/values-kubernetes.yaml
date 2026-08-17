@@ -2,6 +2,11 @@
 platform:
   type: kubernetes
 
+# Die VPA-API gehört nicht zum Kubernetes-Kern. Auf Standard-Kubernetes bleibt
+# sie aus, bis der VPA-Operator samt CRD installiert wurde.
+verticalPodAutoscaler:
+  enabled: false
+
 # Kubernetes besitzt keine OpenShift ImageStreams oder Image-Change-Trigger.
 # Always lädt bewegliche Tags bei jedem Podstart neu; automatische Rollouts bei
 # einem neuen Digest müssen durch GitOps oder einen separaten Controller erfolgen.
@@ -10,15 +15,36 @@ drupal:
     pullPolicy: Always
     autoUpdate:
       enabled: false
+  persistence:
+    accessModes:
+      - ReadWriteOnce
 
 redis:
   image:
     pullPolicy: Always
     autoUpdate:
       enabled: false
+  # Das offizielle Redis-Image deklariert keinen USER. Eine explizite numerische
+  # Identität verhindert daher runAsNonRoot-Fehler auf Standard-Kubernetes.
+  podSecurityContext:
+    runAsUser: 999
+    runAsGroup: 1000
+    fsGroup: 1000
+  persistence:
+    accessModes:
+      - ReadWriteOnce
 
 database:
   image:
     pullPolicy: Always
     autoUpdate:
       enabled: false
+  # Entspricht dem mysql-Benutzer des offiziellen MariaDB-UBI-Images und stellt
+  # den Schreibzugriff auf das persistente Volume sicher.
+  podSecurityContext:
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+  persistence:
+    accessModes:
+      - ReadWriteOnce

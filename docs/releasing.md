@@ -3,24 +3,26 @@
 Die Chart-Veröffentlichung ist vollständig im eigenständigen Helm-Repository
 enthalten und benötigt keinen Checkout des DDBgo- oder DDBpro-Quellcodes.
 
-## Kanäle
+## Kanal
 
 | Branch | Chart-Version | GitHub Pages |
 | --- | --- | --- |
-| `test` | `<version>-test.<run>.<attempt>.sha<commit>` | `/helm/test/` |
-| `master` | exakt `version` aus `charts/drupal/Chart.yaml` | `/helm/stable/` |
+| `main` | exakt `version` aus `charts/drupal/Chart.yaml` | `/helm/stable/` |
 
-Beide Kanäle werden zusätzlich unter
+Das Chart wird zusätzlich unter
 `oci://ghcr.io/<owner>/helm/drupal` veröffentlicht. Owner und Pages-URL werden
 im Workflow aus dem neuen GitHub-Repository abgeleitet; beim Umbenennen sind
 keine Workflow-Anpassungen erforderlich.
 
+`main` ist der einzige Quell- und Release-Branch. `gh-pages` bleibt als rein
+technischer Branch für die generierten Pakete und den Repository-Index bestehen.
+
 ## Ablauf
 
-1. Auf `test` die nächste stabile Basisversion in `Chart.yaml` setzen.
-2. Änderungen nach `test` pushen und die erzeugte Prerelease testen.
-3. Den unveränderten Stand nach `master` mergen.
-4. Der Master-Lauf veröffentlicht die stabile Basisversion.
+1. Die nächste stabile Version in `Chart.yaml` setzen.
+2. Das Chart lokal oder in einem Pull Request prüfen.
+3. Die Änderung nach `main` übernehmen. Der Main-Lauf veröffentlicht die
+   stabile Version.
 
 Eine vorhandene Version wird nie überschrieben. Existiert dieselbe Version mit
 abweichendem Inhalt, bricht die Action ab und `Chart.yaml` muss erhöht werden.
@@ -29,15 +31,14 @@ abweichendem Inhalt, bricht die Action ab und `Chart.yaml` muss erhöht werden.
 
 1. Unter **Settings → Actions → General → Workflow permissions** Schreibrechte
    für Workflows erlauben.
-2. `publish.yml` einmal auf `test` ausführen, damit `gh-pages` entsteht.
+2. `publish.yml` einmal auf `main` ausführen, damit `gh-pages` entsteht.
 3. Unter **Settings → Pages** „Deploy from a branch“, `gh-pages` und `/ (root)`
    wählen.
 4. Die Paket-Sichtbarkeit unter **Packages** bei Bedarf auf „Public“ setzen.
 
-Danach lauten die klassischen Repository-URLs:
+Danach lautet die klassische Repository-URL:
 
 ```text
-https://<owner>.github.io/<repository>/helm/test/
 https://<owner>.github.io/<repository>/helm/stable/
 ```
 
@@ -59,7 +60,7 @@ helm upgrade --install ddbgo ./drupal \
   --timeout 15m
 ```
 
-Für ein Testsystem wird die vollständige Prerelease-Version und das passende
+Für ein Testsystem wird dieselbe Chart-Version mit dem passenden
 `*-test.yaml`-Profil verwendet. Der Image-Tag bleibt davon unabhängig.
 
 ## OpenShift Developer Catalog
@@ -78,9 +79,9 @@ spec:
     url: https://OWNER.github.io/REPOSITORY/helm/stable/
 ```
 
-Für Test `/helm/test/` und den Ziel-Namespace einsetzen. In der OpenShift-
-Oberfläche müssen die Website-spezifischen Values eingetragen werden, weil der
-Catalog nur die Standardwerte des Charts vorausfüllt.
+Für Test den Ziel-Namespace und das passende `*-test.yaml`-Profil einsetzen. In
+der OpenShift-Oberfläche müssen die Website-spezifischen Values eingetragen
+werden, weil der Catalog nur die Standardwerte des Charts vorausfüllt.
 
 ## Rollback
 

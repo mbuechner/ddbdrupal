@@ -1,11 +1,11 @@
 {{- if eq .Values.platform.type "openshift" }}
 {{- $components := list
-  (dict "component" "drupal" "name" (include "drupal.drupalName" .) "image" .Values.drupal.image)
-  (dict "component" "redis" "name" (include "drupal.redisName" .) "image" .Values.redis.image)
-  (dict "component" "db" "name" (include "drupal.databaseName" .) "image" .Values.database.image)
+  (dict "enabled" true "component" "drupal" "name" (include "drupal.drupalName" .) "image" .Values.drupal.image)
+  (dict "enabled" .Values.redis.enabled "component" "redis" "name" (include "drupal.redisName" .) "image" .Values.redis.image)
+  (dict "enabled" .Values.database.enabled "component" "db" "name" (include "drupal.databaseName" .) "image" .Values.database.image)
 -}}
 {{- range $component := $components }}
-{{- if $component.image.autoUpdate.enabled }}
+{{- if and $component.enabled $component.image.autoUpdate.enabled }}
 {{- include "drupal.assertAvailable" (dict "root" $ "apiVersion" "image.openshift.io/v1" "kind" "ImageStream" "name" $component.name) }}
 ---
 apiVersion: image.openshift.io/v1

@@ -65,6 +65,12 @@ helm upgrade --install ddbgo ./charts/drupal \
   --values ./charts/drupal/values-kubernetes.yaml
 ```
 
+Das Plattformprofil setzt für Redis und MariaDB Kubernetes-kompatible
+Non-Root-IDs, verwendet `ReadWriteOnce` für die einzelnen Pods und deaktiviert
+VPA standardmäßig. Wenn der VPA-Operator installiert ist, kann er anschließend
+mit `--set verticalPodAutoscaler.enabled=true` aktiviert werden. Mehrere
+Drupal-Replikate benötigen weiterhin eine RWX-fähige StorageClass.
+
 ## Weitere Webseiten und Images
 
 Ohne Website-Profil erlaubt das Chart beliebige Release-Namen. Mindestens Host,
@@ -125,13 +131,15 @@ Repositories. Es wird kein verschachteltes `.git`-Verzeichnis angelegt.
 ## Entwicklung und Veröffentlichung
 
 Pull Requests und Branch-Pushes werden durch `lint.yml` für alle vier Profile
-sowie für Kubernetes und OpenShift geprüft. `publish.yml` behält die vorhandene
-Kanalstrategie bei:
+sowie für Kubernetes und OpenShift geprüft. Beide Workflows verwenden `main`
+als einzigen Quell- und Release-Branch. `publish.yml` veröffentlicht dort:
 
-- `test` veröffentlicht eine eindeutige Test-Prerelease-Version;
-- `master` veröffentlicht die stabile Version aus `Chart.yaml`;
-- beide Versionen erscheinen als OCI-Artefakt in GHCR und als klassisches
-  Helm-Repository auf GitHub Pages.
+- die stabile Version aus `Chart.yaml` als OCI-Artefakt in GHCR;
+- dieselbe Version im klassischen Helm-Repository unter GitHub Pages.
+
+Die `*-test.yaml`-Dateien sind Installationsprofile und kein eigener
+Release-Kanal oder Quell-Branch. Der technische Branch `gh-pages` enthält
+ausschließlich das generierte klassische Helm-Repository.
 
 Details und die einmalige GitHub-Konfiguration stehen in
 [docs/releasing.md](docs/releasing.md).

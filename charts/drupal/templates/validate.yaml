@@ -30,6 +30,9 @@
 {{- if not .Values.drupal.image.tag }}
 {{- fail "drupal.image.tag must not be empty" }}
 {{- end }}
+{{- if and (eq .Values.platform.type "kubernetes") .Values.redis.enabled (eq .Values.redis.image.repository "docker.io/library/redis") (not (hasKey .Values.redis.podSecurityContext "runAsUser")) }}
+{{- fail "redis.podSecurityContext.runAsUser must be set for the official Redis image on Kubernetes; load values-kubernetes.yaml after the website profile" }}
+{{- end }}
 {{- if not (has .Values.verticalPodAutoscaler.updateMode (list "Off" "Initial" "Recreate" "InPlaceOrRecreate" "InPlace" "Auto")) }}
 {{- fail "verticalPodAutoscaler.updateMode must be one of Off, Initial, Recreate, InPlaceOrRecreate, InPlace or Auto" }}
 {{- end }}
@@ -100,18 +103,21 @@
 {{- fail "database.persistence.existingClaim is required when database.persistence.create=false" }}
 {{- end }}
 {{- $persistentComponents := list
-      (dict "enabled" true "component" "drupal" "name" (include "drupal.drupalClaimName" .) "persistence" .Values.drupal.persistence)
-      (dict "enabled" .Values.redis.enabled "component" "redis" "name" (include "drupal.redisClaimName" .) "persistence" .Values.redis.persistence)
-      (dict "enabled" .Values.database.enabled "component" "database" "name" (include "drupal.databaseClaimName" .) "persistence" .Values.database.persistence) -}}
+      (dict "enabled" true "component" "drupal" "name" (include "drupal.drupalClaimName" .) "requiresReadWriteMany" (gt (int .Values.drupal.replicaCount) 1) "persistence" .Values.drupal.persistence)
+      (dict "enabled" .Values.redis.enabled "component" "redis" "name" (include "drupal.redisClaimName" .) "requiresReadWriteMany" false "persistence" .Values.redis.persistence)
+      (dict "enabled" .Values.database.enabled "component" "database" "name" (include "drupal.databaseClaimName" .) "requiresReadWriteMany" false "persistence" .Values.database.persistence) -}}
 {{- range $item := $persistentComponents }}
   {{- if $item.enabled }}
-    {{- if not (has "ReadWriteMany" $item.persistence.accessModes) }}
-      {{- fail (printf "%s.persistence.accessModes must contain ReadWriteMany because shared access is required" $item.component) -}}
+    {{- if eq (len $item.persistence.accessModes) 0 }}
+      {{- fail (printf "%s.persistence.accessModes must contain at least one access mode" $item.component) -}}
+    {{- end }}
+    {{- if and $item.requiresReadWriteMany (not (has "ReadWriteMany" $item.persistence.accessModes)) }}
+      {{- fail (printf "%s.persistence.accessModes must contain ReadWriteMany when more than one Drupal replica is configured" $item.component) -}}
     {{- end }}
     {{- $existingClaim := lookup "v1" "PersistentVolumeClaim" $.Release.Namespace $item.name -}}
     {{- if $existingClaim }}
       {{- $existingAccessModes := dig "spec" "accessModes" (list) $existingClaim -}}
-      {{- if not (has "ReadWriteMany" $existingAccessModes) }}
+      {{- if and $item.requiresReadWriteMany (not (has "ReadWriteMany" $existingAccessModes)) }}
         {{- fail (printf "PersistentVolumeClaim %s/%s does not provide required ReadWriteMany access; migrate its data to an RWX-capable volume before installing or upgrading" $.Release.Namespace $item.name) -}}
       {{- end }}
       {{- if and (eq $item.component "database") $.Release.IsInstall $.Values.database.auth.create -}}
