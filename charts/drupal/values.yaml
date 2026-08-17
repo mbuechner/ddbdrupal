@@ -13,9 +13,9 @@ platform:
 
 # Alle Ressourcennamen werden aus dem Helm-Release-Namen abgeleitet.
 naming:
-  # Verhindert versehentliche Installationen mit abweichendem Release- und
-  # Namespace-Namen.
-  enforceReleaseNamespaceMatch: true
+  # Für wiederverwendbare Installationen dürfen Release- und Namespace-Name
+  # voneinander abweichen. Die fest benannten DDB-Profile aktivieren den Schutz.
+  enforceReleaseNamespaceMatch: false
   # Optional kann die Installation auf bekannte Release-Namen begrenzt werden.
   # Leer erlaubt die Wiederverwendung für beliebige Webseiten.
   allowedReleaseNames: []
@@ -36,7 +36,8 @@ protection:
 verticalPodAutoscaler:
   # Erzeugt je einen VPA für Drupal, Redis und MariaDB. Voraussetzung ist, dass
   # der Vertical Pod Autoscaler Operator samt CRD im Cluster installiert ist.
-  enabled: true
+  # Standardmäßig aus, damit eine Installation keine optionale CRD voraussetzt.
+  enabled: false
   # Off sammelt ausschließlich Empfehlungen und verändert keine Pods.
   updateMode: "Off"
   # CPU und Arbeitsspeicher werden in den Empfehlungen berücksichtigt.
@@ -65,7 +66,9 @@ serviceAccounts:
 drupal:
   # Zentrale öffentliche Domain. Route-Name/-Host und Trusted-Host-Regel werden
   # daraus abgeleitet. Die internen Health-Probes verwenden diese Domain nicht.
-  externalHost: drupal.example.invalid
+  # Absichtlich nicht auflösbarer Platzhalter. In der OpenShift Form View oder
+  # per Values-Datei durch den öffentlichen DNS-Namen der Website ersetzen.
+  externalHost: change-me.example.invalid
   # Recreate verhindert, dass während eines Rollouts zwei Drupal-Pods zugleich
   # Änderungen am gemeinsam verwendeten Dateispeicher durchführen.
   replicaCount: 1
@@ -193,11 +196,11 @@ drupal:
     # demselben Release und Namespace übernimmt diesen PVC wieder.
     retain: true
     existingClaim: ""
-    # ReadWriteMany ermöglicht mehrere Drupal-Replikate und bleibt für die
-    # OpenShift-Profile der kompatible Standard. Bei replicaCount > 1 wird RWX
-    # validiert; das Kubernetes-Profil verwendet für eine Replik RWO.
+    # ReadWriteOnce funktioniert mit den üblichen Standard-StorageClasses. Bei
+    # replicaCount > 1 ist eine RWX-fähige StorageClass erforderlich und der
+    # Wert muss auf ReadWriteMany geändert werden.
     accessModes:
-      - ReadWriteMany
+      - ReadWriteOnce
     size: 5Gi
     # Leer verwendet die Standard-StorageClass des Clusters.
     storageClass: ""
@@ -260,10 +263,10 @@ redis:
     # Übernahme durch denselben Release-Namen im selben Namespace.
     retain: true
     existingClaim: ""
-    # Kompatibler OpenShift-Standard. Da Redis hier genau eine Replik besitzt,
-    # überschreibt das Kubernetes-Profil den Access Mode mit ReadWriteOnce.
+    # Redis besitzt hier genau eine Replik; ReadWriteOnce vermeidet eine
+    # unnötige Abhängigkeit von einer RWX-fähigen StorageClass.
     accessModes:
-      - ReadWriteMany
+      - ReadWriteOnce
     size: 2Gi
     # Leer verwendet die Standard-StorageClass des Clusters.
     storageClass: ""
@@ -334,10 +337,10 @@ database:
     # Übernahme durch denselben Release-Namen im selben Namespace.
     retain: true
     existingClaim: ""
-    # Kompatibler OpenShift-Standard. Da MariaDB hier genau eine Replik besitzt,
-    # überschreibt das Kubernetes-Profil den Access Mode mit ReadWriteOnce.
+    # MariaDB besitzt hier genau eine Replik; ReadWriteOnce vermeidet eine
+    # unnötige Abhängigkeit von einer RWX-fähigen StorageClass.
     accessModes:
-      - ReadWriteMany
+      - ReadWriteOnce
     size: 10Gi
     # Leer verwendet die Standard-StorageClass des Clusters.
     storageClass: ""

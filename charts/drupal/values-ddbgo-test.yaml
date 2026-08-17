@@ -2,6 +2,7 @@
 nameOverride: ddbgo
 
 naming:
+  enforceReleaseNamespaceMatch: true
   allowedReleaseNames:
     - ddbgo-t
 
@@ -9,14 +10,30 @@ commonAnnotations:
   dnb.contact/emails: m.buechner@dnb.de
   dnb.contact/persons: Michael Büchner
 
+# Für upgrade-kompatibles Verhalten bewahrt dieses Profil die bisherigen
+# Chart-Defaults für VPA und RWX-Persistenz ausdrücklich.
+verticalPodAutoscaler:
+  enabled: true
+
 drupal:
   externalHost: go-t.deutsche-digitale-bibliothek.de
   image:
     repository: ghcr.io/mbuechner/ddbgo
     tag: test
     pullPolicy: Always
+  persistence:
+    accessModes:
+      - ReadWriteMany
+
+redis:
+  persistence:
+    accessModes:
+      - ReadWriteMany
 
 database:
   auth:
     database: ddbgodb
     username: ddbgo
+  persistence:
+    accessModes:
+      - ReadWriteMany

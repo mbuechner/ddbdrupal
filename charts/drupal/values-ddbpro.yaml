@@ -2,6 +2,7 @@
 nameOverride: ddbpro
 
 naming:
+  enforceReleaseNamespaceMatch: true
   allowedReleaseNames:
     - ddbpro
 
@@ -9,13 +10,29 @@ commonAnnotations:
   dnb.contact/emails: m.buechner@dnb.de
   dnb.contact/persons: Michael Büchner
 
+# Für upgrade-kompatibles Verhalten bewahrt dieses Profil die bisherigen
+# Chart-Defaults für VPA und RWX-Persistenz ausdrücklich.
+verticalPodAutoscaler:
+  enabled: true
+
 drupal:
   externalHost: ddbpro.example.invalid
   image:
     repository: ghcr.io/deutsche-digitale-bibliothek/ddbpro
     tag: tagged
+  persistence:
+    accessModes:
+      - ReadWriteMany
+
+redis:
+  persistence:
+    accessModes:
+      - ReadWriteMany
 
 database:
   auth:
     database: ddbprodb
     username: ddbpro
+  persistence:
+    accessModes:
+      - ReadWriteMany

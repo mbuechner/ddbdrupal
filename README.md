@@ -19,6 +19,13 @@ DDBgo-Profile enthalten die bekannten Hosts. Für DDBpro sind absichtlich
 `.invalid`-Hosts eingetragen, weil die produktiven Domains nicht Teil dieses
 Repositories sind. Sie müssen bei der Installation überschrieben werden.
 
+Das Chart enthält außerdem ein `values.schema.json`. OpenShift kann damit im
+Developer Catalog eine Form View mit verständlichen Feldnamen, Hilfetexten,
+Auswahllisten und Validierung anzeigen. Das zentrale Feld
+`drupal.externalHost` bezeichnet den öffentlichen DNS-Namen für Route/Ingress
+und Drupals Trusted-Host-Regel. Der Standard `change-me.example.invalid` ist
+bewusst nicht auflösbar und muss vor einem realen Einsatz ersetzt werden.
+
 ## Schnellstart
 
 DDBgo-Produktion auf OpenShift:
@@ -66,10 +73,14 @@ helm upgrade --install ddbgo ./charts/drupal \
 ```
 
 Das Plattformprofil setzt für Redis und MariaDB Kubernetes-kompatible
-Non-Root-IDs, verwendet `ReadWriteOnce` für die einzelnen Pods und deaktiviert
-VPA standardmäßig. Wenn der VPA-Operator installiert ist, kann er anschließend
-mit `--set verticalPodAutoscaler.enabled=true` aktiviert werden. Mehrere
-Drupal-Replikate benötigen weiterhin eine RWX-fähige StorageClass.
+Non-Root-IDs und deaktiviert die OpenShift Image-Automatisierung. Die allgemeinen
+Defaults verwenden bereits `ReadWriteOnce` und lassen VPA aus. Wenn der
+VPA-Operator installiert ist, kann VPA mit
+`--set verticalPodAutoscaler.enabled=true` aktiviert werden. Mehrere
+Drupal-Replikate benötigen weiterhin eine RWX-fähige StorageClass. Die DDB-
+Profile bewahren aus Upgrade-Kompatibilität die bisherigen Chart-Defaults RWX
+und VPA; für ein Cluster ohne diese Voraussetzungen können beide Werte
+überschrieben werden.
 
 ## Weitere Webseiten und Images
 
@@ -118,15 +129,16 @@ Chart angepasst werden.
 ```text
 .
 ├── .github/workflows/       # CI und Veröffentlichung
-├── charts/drupal/           # Chart und Website-Profile
+├── charts/drupal/           # Chart, Form-View-Schema und Website-Profile
 ├── docs/releasing.md        # Release- und GitHub-Pages-Runbook
 ├── LICENSE
 └── README.md
 ```
 
-`helm/` enthält damit alles, was für das neue GitHub-Repository benötigt wird.
-Beim Auslagern wird der **Inhalt** dieses Verzeichnisses zur Wurzel des neuen
-Repositories. Es wird kein verschachteltes `.git`-Verzeichnis angelegt.
+Das Repository heißt `ddbdrupal`. Das veröffentlichte OCI-Chart liegt daher
+direkt unter `oci://ghcr.io/<owner>/ddbdrupal`; `helm/drupal` ist kein
+Repository- oder OCI-Pfad. `charts/drupal/` ist lediglich das interne
+Quellverzeichnis des Charts.
 
 ## Entwicklung und Veröffentlichung
 
