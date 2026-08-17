@@ -10,37 +10,586 @@
     "verticalPodAutoscaler"
   ],
   "properties": {
-    "nameOverride": {
-      "type": "string",
-      "title": "Anwendungslabel überschreiben",
-      "description": "Optionales app.kubernetes.io/name-Label. Ressourcennamen werden weiterhin aus dem Helm-Release abgeleitet.",
-      "default": ""
-    },
     "platform": {
       "type": "object",
-      "title": "Zielplattform",
-      "description": "Wählt OpenShift Route und ImageStreams oder ein Kubernetes Ingress.",
+      "title": "WICHTIG: Zielplattform",
+      "description": "Waehlt OpenShift Route und ImageStreams oder ein Kubernetes Ingress. Ein values-*.yaml-Profil wird nur mit Helm -f geladen; in der Form View die darunter dokumentierten Profilwerte verwenden.",
       "additionalProperties": false,
       "required": ["type"],
       "properties": {
         "type": {
           "type": "string",
           "title": "Plattform",
-          "description": "Für die Installation aus dem OpenShift Developer Catalog openshift verwenden.",
+          "description": "Fuer die Installation aus dem OpenShift Developer Catalog openshift verwenden.",
           "enum": ["openshift", "kubernetes"],
           "default": "openshift"
         }
       }
     },
+    "drupal": {
+      "type": "object",
+      "title": "WICHTIG: Website-Profil und Drupal",
+      "description": "Profilwerte: ddbgo = Release ddbgo, Host go.deutsche-digitale-bibliothek.de, Image ghcr.io/mbuechner/ddbgo:tagged; ddbgo-t = Release ddbgo-t, Host go-t.deutsche-digitale-bibliothek.de, gleiches Image mit Tag test; ddbpro = Release ddbpro, Image ghcr.io/deutsche-digitale-bibliothek/ddbpro:tagged und echten Host eintragen; ddbpro-t = Release ddbpro-t, gleiches Image mit Tag test und echten Test-Host eintragen.",
+      "additionalProperties": false,
+      "required": ["externalHost", "image", "persistence"],
+      "properties": {
+        "externalHost": {
+          "type": "string",
+          "title": "WICHTIG: Oeffentlicher DNS-Hostname",
+          "description": "Host fuer Route oder Ingress und Drupals Trusted-Host-Regel. DDBgo: go.deutsche-digitale-bibliothek.de; DDBgo-Test: go-t.deutsche-digitale-bibliothek.de. Die .invalid-Platzhalter fuer DDBpro und DDBpro-Test muessen ersetzt werden.",
+          "default": "change-me.example.invalid",
+          "minLength": 4,
+          "maxLength": 253,
+          "pattern": "^([a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?\\.)+[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+        },
+        "image": {
+          "type": "object",
+          "title": "WICHTIG: Drupal-Image und Profil",
+          "description": "DDBgo und ddbgo-t verwenden ghcr.io/mbuechner/ddbgo. DDBpro und ddbpro-t verwenden ghcr.io/deutsche-digitale-bibliothek/ddbpro. Produktion nutzt tagged, Test nutzt test.",
+          "additionalProperties": false,
+          "required": ["repository", "tag", "pullPolicy"],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "title": "Image-Repository",
+              "description": "DDBgo: ghcr.io/mbuechner/ddbgo; DDBpro: ghcr.io/deutsche-digitale-bibliothek/ddbpro.",
+              "default": "ghcr.io/mbuechner/ddbgo",
+              "minLength": 1,
+              "pattern": "^[^\\s]+$"
+            },
+            "tag": {
+              "type": "string",
+              "title": "Image-Tag",
+              "description": "Produktion: tagged; Test: test.",
+              "default": "tagged",
+              "minLength": 1,
+              "pattern": "^[^\\s]+$"
+            },
+            "pullPolicy": {
+              "$ref": "#/definitions/pullPolicy"
+            },
+            "autoUpdate": {
+              "$ref": "#/definitions/autoUpdate"
+            }
+          }
+        },
+        "persistence": {
+          "$ref": "#/definitions/drupalPersistence"
+        },
+        "replicaCount": {
+          "type": "integer",
+          "title": "Optional: Drupal-Replikate",
+          "description": "Mehr als eine Replik erfordert ein ReadWriteMany-faehiges Drupal-Volume.",
+          "default": 1,
+          "minimum": 1
+        },
+        "service": {
+          "type": "object",
+          "title": "Optional: Drupal-Service",
+          "description": "Interner HTTP-Service fuer Route oder Ingress.",
+          "additionalProperties": false,
+          "properties": {
+            "port": {
+              "type": "integer",
+              "title": "Service-Port",
+              "default": 8080,
+              "minimum": 1,
+              "maximum": 65535
+            }
+          }
+        },
+        "route": {
+          "type": "object",
+          "title": "Optional: OpenShift Route",
+          "description": "Wird nur auf OpenShift ausgewertet. TLS endet gemaess Betriebsmodell vor der Route.",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "title": "Route erzeugen",
+              "default": true
+            },
+            "annotations": {
+              "$ref": "#/definitions/annotations"
+            }
+          }
+        },
+        "ingress": {
+          "type": "object",
+          "title": "Optional: Kubernetes Ingress",
+          "description": "Wird nur mit platform.type=kubernetes ausgewertet.",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "title": "Ingress erzeugen",
+              "default": true
+            },
+            "className": {
+              "type": "string",
+              "title": "IngressClass",
+              "default": ""
+            },
+            "annotations": {
+              "$ref": "#/definitions/annotations"
+            },
+            "path": {
+              "type": "string",
+              "title": "Ingress-Pfad",
+              "default": "/",
+              "pattern": "^/"
+            },
+            "pathType": {
+              "type": "string",
+              "title": "Ingress-Pfadtyp",
+              "enum": ["Exact", "Prefix", "ImplementationSpecific"],
+              "default": "Prefix"
+            }
+          }
+        },
+        "config": {
+          "type": "object",
+          "title": "Optional: Drupal-Konfiguration",
+          "description": "Pfade, Trusted Hosts und lokaler Drush-Kontext des kompatiblen Drupal-Images.",
+          "additionalProperties": false,
+          "properties": {
+            "webRoot": {
+              "type": "string",
+              "title": "Drupal-Webroot",
+              "default": "/var/www/html/web",
+              "pattern": "^/"
+            },
+            "updateFreeAccess": {
+              "type": "boolean",
+              "title": "Freien Zugriff auf update.php erlauben",
+              "default": false
+            },
+            "filePublicPath": {
+              "type": "string",
+              "title": "Oeffentlicher Dateipfad",
+              "description": "Relativ zum Drupal-Webroot und ohne .- oder ..-Segmente.",
+              "default": "sites/default/files",
+              "minLength": 1,
+              "pattern": "^[^/].*$"
+            },
+            "filePrivatePath": {
+              "type": "string",
+              "title": "Privater Dateipfad",
+              "default": "/var/www/html/private",
+              "pattern": "^/"
+            },
+            "tempPath": {
+              "type": "string",
+              "title": "Temporaerer Pfad",
+              "default": "/tmp",
+              "pattern": "^/"
+            },
+            "trustedHosts": {
+              "type": "object",
+              "title": "Zusaetzliche Trusted Hosts",
+              "description": "Literale Hostnamen; das Chart maskiert sie automatisch fuer Drupals regulaere Ausdruecke.",
+              "additionalProperties": false,
+              "properties": {
+                "allowLocalhost": {
+                  "type": "boolean",
+                  "title": "localhost erlauben",
+                  "default": true
+                },
+                "additionalHosts": {
+                  "type": "array",
+                  "title": "Weitere Hostnamen",
+                  "default": [],
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            },
+            "drushOptionsUri": {
+              "type": "string",
+              "title": "Lokale Drush-URI",
+              "default": "http://localhost:8080",
+              "pattern": "^https?://"
+            }
+          }
+        },
+        "env": {
+          "type": "object",
+          "title": "Optional: Drupal-Startaktionen und Basic Auth",
+          "description": "Steuert zustandsaendernde Drush-Aktionen beim Containerstart sowie optionale HTTP-Basic-Auth-Werte.",
+          "additionalProperties": false,
+          "properties": {
+            "UPDATEDB_ON_STARTUP": {
+              "$ref": "#/definitions/yesNo"
+            },
+            "CONFIG_IMPORT_ON_STARTUP": {
+              "$ref": "#/definitions/yesNo"
+            },
+            "CACHEREBUILD_ON_STARTUP": {
+              "$ref": "#/definitions/yesNo"
+            },
+            "HTPASSWD_GREETING": {
+              "type": "string",
+              "title": "Basic-Auth-Begruessung",
+              "default": ""
+            },
+            "HTPASSWD_USER": {
+              "type": "string",
+              "title": "Basic-Auth-Benutzer",
+              "description": "Besser ein vorhandenes Secret unter basicAuth.existingSecret verwenden.",
+              "default": ""
+            },
+            "HTPASSWD_PWD": {
+              "type": "string",
+              "format": "password",
+              "title": "Basic-Auth-Passwort",
+              "description": "Besser ein vorhandenes Secret unter basicAuth.existingSecret verwenden.",
+              "default": ""
+            }
+          }
+        },
+        "basicAuth": {
+          "type": "object",
+          "title": "Optional: Externes Basic-Auth-Secret",
+          "description": "Optionales vorhandenes Secret mit HTPASSWD_USER und HTPASSWD_PWD.",
+          "additionalProperties": false,
+          "properties": {
+            "existingSecret": {
+              "type": "string",
+              "title": "Secret-Name",
+              "default": ""
+            }
+          }
+        },
+        "dependencyChecks": {
+          "type": "object",
+          "title": "Erweitert: Abhaengigkeitspruefungen",
+          "description": "Wartezeit und Ressourcen der MariaDB-/Redis-Init-Container.",
+          "additionalProperties": false,
+          "properties": {
+            "retryIntervalSeconds": {
+              "type": "integer",
+              "title": "Wiederholungsintervall in Sekunden",
+              "default": 5,
+              "minimum": 1
+            },
+            "resources": {
+              "$ref": "#/definitions/resources"
+            }
+          }
+        },
+        "probes": {
+          "type": "object",
+          "title": "Erweitert: Health-Probes",
+          "description": "Health-Endpunkt und Zeitwerte fuer Startup-, Readiness- und Liveness-Probes.",
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string",
+              "title": "Health-Pfad",
+              "default": "/health",
+              "pattern": "^/"
+            },
+            "hostHeader": {
+              "type": "string",
+              "title": "HTTP-Host-Header",
+              "default": "localhost",
+              "minLength": 1
+            },
+            "startup": {
+              "$ref": "#/definitions/probeTiming"
+            },
+            "readiness": {
+              "$ref": "#/definitions/probeTiming"
+            },
+            "liveness": {
+              "$ref": "#/definitions/probeTiming"
+            }
+          }
+        },
+        "secret": {
+          "type": "object",
+          "title": "Optional: Drupal-Secret",
+          "description": "Erzeugt und behaelt den Hash Salt oder verwendet ein vorhandenes Secret mit dem Schluessel hash-salt.",
+          "additionalProperties": false,
+          "properties": {
+            "create": {
+              "type": "boolean",
+              "title": "Secret erzeugen",
+              "default": true
+            },
+            "existingSecret": {
+              "type": "string",
+              "title": "Vorhandenes Secret",
+              "default": ""
+            },
+            "hashSalt": {
+              "type": "string",
+              "format": "password",
+              "title": "Expliziter Hash Salt",
+              "description": "Leer erzeugt bei der Erstinstallation einen zufaelligen Wert.",
+              "default": ""
+            }
+          }
+        },
+        "podAnnotations": {
+          "$ref": "#/definitions/annotations"
+        },
+        "podSecurityContext": {
+          "$ref": "#/definitions/podSecurityContext"
+        },
+        "securityContext": {
+          "$ref": "#/definitions/containerSecurityContext"
+        },
+        "resources": {
+          "$ref": "#/definitions/resources"
+        },
+        "nodeSelector": {
+          "$ref": "#/definitions/stringMap"
+        },
+        "tolerations": {
+          "$ref": "#/definitions/tolerations"
+        },
+        "affinity": {
+          "$ref": "#/definitions/freeObject"
+        }
+      }
+    },
+    "database": {
+      "type": "object",
+      "title": "WICHTIG: MariaDB-Profil",
+      "description": "DDBgo und ddbgo-t verwenden Datenbank ddbgodb mit Benutzer ddbgo. DDBpro und ddbpro-t verwenden Datenbank ddbprodb mit Benutzer ddbpro. Leere Passwoerter werden bei der Erstinstallation sicher erzeugt.",
+      "additionalProperties": false,
+      "required": ["enabled", "image", "auth", "persistence"],
+      "properties": {
+        "auth": {
+          "type": "object",
+          "title": "WICHTIG: Datenbankname und Benutzer",
+          "description": "DDBgo/ddbgo-t: database=ddbgodb und username=ddbgo. DDBpro/ddbpro-t: database=ddbprodb und username=ddbpro. Passwoerter leer lassen, um sie automatisch zu erzeugen, oder ein vorhandenes Secret angeben.",
+          "additionalProperties": false,
+          "required": ["create", "database", "username"],
+          "properties": {
+            "create": {
+              "type": "boolean",
+              "title": "Secret erzeugen",
+              "default": true
+            },
+            "existingSecret": {
+              "type": "string",
+              "title": "Vorhandenes Secret",
+              "default": ""
+            },
+            "database": {
+              "type": "string",
+              "title": "Datenbankname",
+              "default": "drupal",
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_]+$"
+            },
+            "username": {
+              "type": "string",
+              "title": "Datenbankbenutzer",
+              "default": "drupal",
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_]+$"
+            },
+            "password": {
+              "type": "string",
+              "format": "password",
+              "title": "Datenbankpasswort",
+              "description": "Leer erzeugt bei der Erstinstallation ein zufaelliges Passwort.",
+              "default": ""
+            },
+            "rootPassword": {
+              "type": "string",
+              "format": "password",
+              "title": "MariaDB-Root-Passwort",
+              "description": "Leer erzeugt bei der Erstinstallation ein zufaelliges Passwort.",
+              "default": ""
+            }
+          }
+        },
+        "enabled": {
+          "type": "boolean",
+          "title": "MariaDB aktivieren",
+          "description": "Die unterstuetzten Drupal-Images benoetigen MariaDB; false wird vom Chart abgelehnt.",
+          "default": true
+        },
+        "config": {
+          "type": "object",
+          "title": "Optional: MariaDB-Konfiguration",
+          "description": "Globale Einstellungen des Datenbankservers.",
+          "additionalProperties": false,
+          "properties": {
+            "transactionIsolation": {
+              "type": "string",
+              "title": "Transaktionsisolation",
+              "enum": ["READ-UNCOMMITTED", "READ-COMMITTED", "REPEATABLE-READ", "SERIALIZABLE"],
+              "default": "READ-COMMITTED"
+            }
+          }
+        },
+        "image": {
+          "type": "object",
+          "title": "Optional: MariaDB-Image",
+          "description": "Offizielles MariaDB-UBI-Image oder kompatibler Ersatz.",
+          "additionalProperties": false,
+          "required": ["repository", "tag", "pullPolicy"],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "title": "Image-Repository",
+              "default": "docker.io/library/mariadb",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string",
+              "title": "Image-Tag",
+              "default": "11.8-ubi9",
+              "minLength": 1
+            },
+            "pullPolicy": {
+              "$ref": "#/definitions/pullPolicy"
+            },
+            "autoUpdate": {
+              "$ref": "#/definitions/autoUpdate"
+            }
+          }
+        },
+        "persistence": {
+          "$ref": "#/definitions/databasePersistence"
+        },
+        "podAnnotations": {
+          "$ref": "#/definitions/annotations"
+        },
+        "podSecurityContext": {
+          "$ref": "#/definitions/podSecurityContext"
+        },
+        "securityContext": {
+          "$ref": "#/definitions/containerSecurityContext"
+        },
+        "resources": {
+          "$ref": "#/definitions/resources"
+        },
+        "nodeSelector": {
+          "$ref": "#/definitions/stringMap"
+        },
+        "tolerations": {
+          "$ref": "#/definitions/tolerations"
+        },
+        "affinity": {
+          "$ref": "#/definitions/freeObject"
+        }
+      }
+    },
+    "redis": {
+      "type": "object",
+      "title": "Optional: Redis-Cache",
+      "description": "Optionaler Redis-Cache einschliesslich Image, Zugangsdaten, Persistenz und Ressourcen.",
+      "additionalProperties": false,
+      "required": ["enabled", "image", "secret", "persistence"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Redis aktivieren",
+          "default": true
+        },
+        "image": {
+          "type": "object",
+          "title": "Optional: Redis-Image",
+          "description": "Offizielles Redis-Image oder kompatibler Ersatz.",
+          "additionalProperties": false,
+          "required": ["repository", "tag", "pullPolicy"],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "title": "Image-Repository",
+              "default": "docker.io/library/redis",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string",
+              "title": "Image-Tag",
+              "default": "8.2-alpine",
+              "minLength": 1
+            },
+            "pullPolicy": {
+              "$ref": "#/definitions/pullPolicy"
+            },
+            "autoUpdate": {
+              "$ref": "#/definitions/autoUpdate"
+            }
+          }
+        },
+        "secret": {
+          "type": "object",
+          "title": "Optional: Redis-Secret",
+          "description": "Erzeugt ein behaltenes Passwort oder verwendet ein vorhandenes Secret mit dem Schluessel password.",
+          "additionalProperties": false,
+          "properties": {
+            "create": {
+              "type": "boolean",
+              "title": "Secret erzeugen",
+              "default": true
+            },
+            "existingSecret": {
+              "type": "string",
+              "title": "Vorhandenes Secret",
+              "default": ""
+            },
+            "password": {
+              "type": "string",
+              "format": "password",
+              "title": "Redis-Passwort",
+              "description": "Leer erzeugt ein zufaelliges Passwort. Explizite Werte muessen 16 bis 128 ASCII-Buchstaben oder Ziffern enthalten.",
+              "default": "",
+              "pattern": "^$|^[A-Za-z0-9]{16,128}$"
+            }
+          }
+        },
+        "persistence": {
+          "$ref": "#/definitions/redisPersistence"
+        },
+        "podAnnotations": {
+          "$ref": "#/definitions/annotations"
+        },
+        "podSecurityContext": {
+          "$ref": "#/definitions/podSecurityContext"
+        },
+        "securityContext": {
+          "$ref": "#/definitions/containerSecurityContext"
+        },
+        "resources": {
+          "$ref": "#/definitions/resources"
+        },
+        "nodeSelector": {
+          "$ref": "#/definitions/stringMap"
+        },
+        "tolerations": {
+          "$ref": "#/definitions/tolerations"
+        },
+        "affinity": {
+          "$ref": "#/definitions/freeObject"
+        }
+      }
+    },
+    "nameOverride": {
+      "type": "string",
+      "title": "Optional: Anwendungslabel ueberschreiben",
+      "description": "Optionales app.kubernetes.io/name-Label. Ressourcennamen werden weiterhin aus dem Helm-Release abgeleitet.",
+      "default": ""
+    },
     "naming": {
       "type": "object",
-      "title": "Release-Namen",
+      "title": "Optional: Release-Namen absichern",
       "description": "Schutz vor Installationen unter einem falschen Release- oder Namespace-Namen.",
       "additionalProperties": false,
       "properties": {
         "enforceReleaseNamespaceMatch": {
           "type": "boolean",
-          "title": "Release und Namespace müssen übereinstimmen",
+          "title": "Release und Namespace muessen uebereinstimmen",
           "default": false
         },
         "allowedReleaseNames": {
@@ -57,26 +606,10 @@
         }
       }
     },
-    "commonAnnotations": {
-      "$ref": "#/definitions/annotations"
-    },
-    "protection": {
-      "type": "object",
-      "title": "Schutz vorhandener Ressourcen",
-      "description": "Verhindert, dass gleichnamige fremde Kubernetes-Ressourcen versehentlich übernommen werden.",
-      "additionalProperties": false,
-      "properties": {
-        "failOnExistingResource": {
-          "type": "boolean",
-          "title": "Bei fremden Ressourcen abbrechen",
-          "default": true
-        }
-      }
-    },
     "verticalPodAutoscaler": {
       "type": "object",
-      "title": "Vertical Pod Autoscaler",
-      "description": "Benötigt einen installierten VPA-Operator und dessen CRD. Der Modus Off sammelt nur Empfehlungen.",
+      "title": "Optional: Vertical Pod Autoscaler",
+      "description": "Nur aktivieren, wenn VPA-Operator und CRD installiert sind. Der Modus Off sammelt nur Empfehlungen.",
       "additionalProperties": false,
       "required": ["enabled", "updateMode"],
       "properties": {
@@ -113,8 +646,8 @@
     },
     "imagePullSecrets": {
       "type": "array",
-      "title": "Registry-Zugangsdaten",
-      "description": "Bereits vorhandene Image-Pull-Secrets für alle Pods.",
+      "title": "Optional: Registry-Zugangsdaten",
+      "description": "Bereits vorhandene Image-Pull-Secrets fuer alle Pods.",
       "default": [],
       "items": {
         "type": "object",
@@ -131,8 +664,8 @@
     },
     "serviceAccounts": {
       "type": "object",
-      "title": "Service Accounts",
-      "description": "Erzeugt getrennte Service Accounts für Drupal, Redis und MariaDB oder verwendet vorhandene Namen.",
+      "title": "Erweitert: Service Accounts",
+      "description": "Erzeugt getrennte Service Accounts fuer Drupal, Redis und MariaDB oder verwendet vorhandene Namen.",
       "additionalProperties": false,
       "properties": {
         "create": {
@@ -160,550 +693,19 @@
         }
       }
     },
-    "drupal": {
-      "type": "object",
-      "title": "Drupal-Anwendung",
-      "description": "Öffentlicher Host, Containerimage, Drupal-Konfiguration, Persistenz und Laufzeitressourcen.",
-      "additionalProperties": false,
-      "required": ["externalHost", "image", "persistence"],
-      "properties": {
-        "externalHost": {
-          "type": "string",
-          "title": "Öffentlicher DNS-Hostname",
-          "description": "Pflichtfeld für die OpenShift Route beziehungsweise das Kubernetes Ingress und Drupals Trusted-Host-Regel. change-me.example.invalid ist nur ein nicht auflösbarer Platzhalter und muss ersetzt werden.",
-          "default": "change-me.example.invalid",
-          "minLength": 4,
-          "maxLength": 253,
-          "pattern": "^([a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?\\.)+[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
-        },
-        "replicaCount": {
-          "type": "integer",
-          "title": "Drupal-Replikate",
-          "description": "Mehr als eine Replik erfordert ein ReadWriteMany-fähiges Drupal-Volume.",
-          "default": 1,
-          "minimum": 1
-        },
-        "image": {
-          "type": "object",
-          "title": "Drupal-Image",
-          "description": "DDBgo-/DDBpro-kompatibles Anwendungsimage gemäß dem dokumentierten Containervertrag.",
-          "additionalProperties": false,
-          "required": ["repository", "tag", "pullPolicy"],
-          "properties": {
-            "repository": {
-              "type": "string",
-              "title": "Image-Repository",
-              "default": "ghcr.io/mbuechner/ddbgo",
-              "minLength": 1,
-              "pattern": "^[^\\s]+$"
-            },
-            "tag": {
-              "type": "string",
-              "title": "Image-Tag",
-              "default": "tagged",
-              "minLength": 1,
-              "pattern": "^[^\\s]+$"
-            },
-            "pullPolicy": {
-              "$ref": "#/definitions/pullPolicy"
-            },
-            "autoUpdate": {
-              "$ref": "#/definitions/autoUpdate"
-            }
-          }
-        },
-        "service": {
-          "type": "object",
-          "title": "Drupal-Service",
-          "description": "Interner HTTP-Service für Route oder Ingress.",
-          "additionalProperties": false,
-          "properties": {
-            "port": {
-              "type": "integer",
-              "title": "Service-Port",
-              "default": 8080,
-              "minimum": 1,
-              "maximum": 65535
-            }
-          }
-        },
-        "route": {
-          "type": "object",
-          "title": "OpenShift Route",
-          "description": "Wird nur auf OpenShift ausgewertet. TLS endet gemäß Betriebsmodell vor der Route.",
-          "additionalProperties": false,
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "title": "Route erzeugen",
-              "default": true
-            },
-            "annotations": {
-              "$ref": "#/definitions/annotations"
-            }
-          }
-        },
-        "ingress": {
-          "type": "object",
-          "title": "Kubernetes Ingress",
-          "description": "Wird nur mit platform.type=kubernetes ausgewertet.",
-          "additionalProperties": false,
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "title": "Ingress erzeugen",
-              "default": true
-            },
-            "className": {
-              "type": "string",
-              "title": "IngressClass",
-              "default": ""
-            },
-            "annotations": {
-              "$ref": "#/definitions/annotations"
-            },
-            "path": {
-              "type": "string",
-              "title": "Ingress-Pfad",
-              "default": "/",
-              "pattern": "^/"
-            },
-            "pathType": {
-              "type": "string",
-              "title": "Ingress-Pfadtyp",
-              "enum": ["Exact", "Prefix", "ImplementationSpecific"],
-              "default": "Prefix"
-            }
-          }
-        },
-        "config": {
-          "type": "object",
-          "title": "Drupal-Konfiguration",
-          "description": "Pfade, Trusted Hosts und lokaler Drush-Kontext des kompatiblen Drupal-Images.",
-          "additionalProperties": false,
-          "properties": {
-            "webRoot": {
-              "type": "string",
-              "title": "Drupal-Webroot",
-              "default": "/var/www/html/web",
-              "pattern": "^/"
-            },
-            "updateFreeAccess": {
-              "type": "boolean",
-              "title": "Freien Zugriff auf update.php erlauben",
-              "default": false
-            },
-            "filePublicPath": {
-              "type": "string",
-              "title": "Öffentlicher Dateipfad",
-              "description": "Relativ zum Drupal-Webroot und ohne .- oder ..-Segmente.",
-              "default": "sites/default/files",
-              "minLength": 1,
-              "pattern": "^[^/].*$"
-            },
-            "filePrivatePath": {
-              "type": "string",
-              "title": "Privater Dateipfad",
-              "default": "/var/www/html/private",
-              "pattern": "^/"
-            },
-            "tempPath": {
-              "type": "string",
-              "title": "Temporärer Pfad",
-              "default": "/tmp",
-              "pattern": "^/"
-            },
-            "trustedHosts": {
-              "type": "object",
-              "title": "Zusätzliche Trusted Hosts",
-              "description": "Literale Hostnamen; das Chart maskiert sie automatisch für Drupals reguläre Ausdrücke.",
-              "additionalProperties": false,
-              "properties": {
-                "allowLocalhost": {
-                  "type": "boolean",
-                  "title": "localhost erlauben",
-                  "default": true
-                },
-                "additionalHosts": {
-                  "type": "array",
-                  "title": "Weitere Hostnamen",
-                  "default": [],
-                  "uniqueItems": true,
-                  "items": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                }
-              }
-            },
-            "drushOptionsUri": {
-              "type": "string",
-              "title": "Lokale Drush-URI",
-              "default": "http://localhost:8080",
-              "pattern": "^https?://"
-            }
-          }
-        },
-        "env": {
-          "type": "object",
-          "title": "Drupal-Startaktionen und Basic Auth",
-          "description": "Steuert zustandsändernde Drush-Aktionen beim Containerstart sowie optionale HTTP-Basic-Auth-Werte.",
-          "additionalProperties": false,
-          "properties": {
-            "UPDATEDB_ON_STARTUP": {
-              "$ref": "#/definitions/yesNo"
-            },
-            "CONFIG_IMPORT_ON_STARTUP": {
-              "$ref": "#/definitions/yesNo"
-            },
-            "CACHEREBUILD_ON_STARTUP": {
-              "$ref": "#/definitions/yesNo"
-            },
-            "HTPASSWD_GREETING": {
-              "type": "string",
-              "title": "Basic-Auth-Begrüßung",
-              "default": ""
-            },
-            "HTPASSWD_USER": {
-              "type": "string",
-              "title": "Basic-Auth-Benutzer",
-              "description": "Besser ein vorhandenes Secret unter basicAuth.existingSecret verwenden.",
-              "default": ""
-            },
-            "HTPASSWD_PWD": {
-              "type": "string",
-              "format": "password",
-              "title": "Basic-Auth-Passwort",
-              "description": "Besser ein vorhandenes Secret unter basicAuth.existingSecret verwenden.",
-              "default": ""
-            }
-          }
-        },
-        "basicAuth": {
-          "type": "object",
-          "title": "Externes Basic-Auth-Secret",
-          "description": "Optionales vorhandenes Secret mit HTPASSWD_USER und HTPASSWD_PWD.",
-          "additionalProperties": false,
-          "properties": {
-            "existingSecret": {
-              "type": "string",
-              "title": "Secret-Name",
-              "default": ""
-            }
-          }
-        },
-        "dependencyChecks": {
-          "type": "object",
-          "title": "Abhängigkeitsprüfungen",
-          "description": "Wartezeit und Ressourcen der MariaDB-/Redis-Init-Container.",
-          "additionalProperties": false,
-          "properties": {
-            "retryIntervalSeconds": {
-              "type": "integer",
-              "title": "Wiederholungsintervall in Sekunden",
-              "default": 5,
-              "minimum": 1
-            },
-            "resources": {
-              "$ref": "#/definitions/resources"
-            }
-          }
-        },
-        "probes": {
-          "type": "object",
-          "title": "Health-Probes",
-          "description": "Health-Endpunkt und Zeitwerte für Startup-, Readiness- und Liveness-Probes.",
-          "additionalProperties": false,
-          "properties": {
-            "path": {
-              "type": "string",
-              "title": "Health-Pfad",
-              "default": "/health",
-              "pattern": "^/"
-            },
-            "hostHeader": {
-              "type": "string",
-              "title": "HTTP-Host-Header",
-              "default": "localhost",
-              "minLength": 1
-            },
-            "startup": {
-              "$ref": "#/definitions/probeTiming"
-            },
-            "readiness": {
-              "$ref": "#/definitions/probeTiming"
-            },
-            "liveness": {
-              "$ref": "#/definitions/probeTiming"
-            }
-          }
-        },
-        "secret": {
-          "type": "object",
-          "title": "Drupal-Secret",
-          "description": "Erzeugt und behält den Hash Salt oder verwendet ein vorhandenes Secret mit dem Schlüssel hash-salt.",
-          "additionalProperties": false,
-          "properties": {
-            "create": {
-              "type": "boolean",
-              "title": "Secret erzeugen",
-              "default": true
-            },
-            "existingSecret": {
-              "type": "string",
-              "title": "Vorhandenes Secret",
-              "default": ""
-            },
-            "hashSalt": {
-              "type": "string",
-              "format": "password",
-              "title": "Expliziter Hash Salt",
-              "description": "Leer erzeugt bei der Erstinstallation einen zufälligen Wert.",
-              "default": ""
-            }
-          }
-        },
-        "persistence": {
-          "$ref": "#/definitions/drupalPersistence"
-        },
-        "podAnnotations": {
-          "$ref": "#/definitions/annotations"
-        },
-        "podSecurityContext": {
-          "$ref": "#/definitions/podSecurityContext"
-        },
-        "securityContext": {
-          "$ref": "#/definitions/containerSecurityContext"
-        },
-        "resources": {
-          "$ref": "#/definitions/resources"
-        },
-        "nodeSelector": {
-          "$ref": "#/definitions/stringMap"
-        },
-        "tolerations": {
-          "$ref": "#/definitions/tolerations"
-        },
-        "affinity": {
-          "$ref": "#/definitions/freeObject"
-        }
-      }
+    "commonAnnotations": {
+      "$ref": "#/definitions/annotations"
     },
-    "redis": {
+    "protection": {
       "type": "object",
-      "title": "Redis",
-      "description": "Optionaler Redis-Cache einschließlich Image, Zugangsdaten, Persistenz und Ressourcen.",
+      "title": "Erweitert: Schutz vorhandener Ressourcen",
+      "description": "Verhindert, dass gleichnamige fremde Kubernetes-Ressourcen versehentlich uebernommen werden.",
       "additionalProperties": false,
-      "required": ["enabled", "image", "secret", "persistence"],
       "properties": {
-        "enabled": {
+        "failOnExistingResource": {
           "type": "boolean",
-          "title": "Redis aktivieren",
+          "title": "Bei fremden Ressourcen abbrechen",
           "default": true
-        },
-        "image": {
-          "type": "object",
-          "title": "Redis-Image",
-          "description": "Offizielles Redis-Image oder kompatibler Ersatz.",
-          "additionalProperties": false,
-          "required": ["repository", "tag", "pullPolicy"],
-          "properties": {
-            "repository": {
-              "type": "string",
-              "title": "Image-Repository",
-              "default": "docker.io/library/redis",
-              "minLength": 1
-            },
-            "tag": {
-              "type": "string",
-              "title": "Image-Tag",
-              "default": "8.2-alpine",
-              "minLength": 1
-            },
-            "pullPolicy": {
-              "$ref": "#/definitions/pullPolicy"
-            },
-            "autoUpdate": {
-              "$ref": "#/definitions/autoUpdate"
-            }
-          }
-        },
-        "secret": {
-          "type": "object",
-          "title": "Redis-Secret",
-          "description": "Erzeugt ein behaltenes Passwort oder verwendet ein vorhandenes Secret mit dem Schlüssel password.",
-          "additionalProperties": false,
-          "properties": {
-            "create": {
-              "type": "boolean",
-              "title": "Secret erzeugen",
-              "default": true
-            },
-            "existingSecret": {
-              "type": "string",
-              "title": "Vorhandenes Secret",
-              "default": ""
-            },
-            "password": {
-              "type": "string",
-              "format": "password",
-              "title": "Redis-Passwort",
-              "description": "Leer erzeugt ein zufälliges Passwort. Explizite Werte müssen 16 bis 128 ASCII-Buchstaben oder Ziffern enthalten.",
-              "default": "",
-              "pattern": "^$|^[A-Za-z0-9]{16,128}$"
-            }
-          }
-        },
-        "persistence": {
-          "$ref": "#/definitions/redisPersistence"
-        },
-        "podAnnotations": {
-          "$ref": "#/definitions/annotations"
-        },
-        "podSecurityContext": {
-          "$ref": "#/definitions/podSecurityContext"
-        },
-        "securityContext": {
-          "$ref": "#/definitions/containerSecurityContext"
-        },
-        "resources": {
-          "$ref": "#/definitions/resources"
-        },
-        "nodeSelector": {
-          "$ref": "#/definitions/stringMap"
-        },
-        "tolerations": {
-          "$ref": "#/definitions/tolerations"
-        },
-        "affinity": {
-          "$ref": "#/definitions/freeObject"
-        }
-      }
-    },
-    "database": {
-      "type": "object",
-      "title": "MariaDB",
-      "description": "Obligatorische Datenbank einschließlich Image, Zugangsdaten, Persistenz und Ressourcen.",
-      "additionalProperties": false,
-      "required": ["enabled", "image", "auth", "persistence"],
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "title": "MariaDB aktivieren",
-          "description": "Die unterstützten Drupal-Images benötigen MariaDB; false wird vom Chart abgelehnt.",
-          "default": true
-        },
-        "config": {
-          "type": "object",
-          "title": "MariaDB-Konfiguration",
-          "description": "Globale Einstellungen des Datenbankservers.",
-          "additionalProperties": false,
-          "properties": {
-            "transactionIsolation": {
-              "type": "string",
-              "title": "Transaktionsisolation",
-              "enum": ["READ-UNCOMMITTED", "READ-COMMITTED", "REPEATABLE-READ", "SERIALIZABLE"],
-              "default": "READ-COMMITTED"
-            }
-          }
-        },
-        "image": {
-          "type": "object",
-          "title": "MariaDB-Image",
-          "description": "Offizielles MariaDB-UBI-Image oder kompatibler Ersatz.",
-          "additionalProperties": false,
-          "required": ["repository", "tag", "pullPolicy"],
-          "properties": {
-            "repository": {
-              "type": "string",
-              "title": "Image-Repository",
-              "default": "docker.io/library/mariadb",
-              "minLength": 1
-            },
-            "tag": {
-              "type": "string",
-              "title": "Image-Tag",
-              "default": "11.8-ubi9",
-              "minLength": 1
-            },
-            "pullPolicy": {
-              "$ref": "#/definitions/pullPolicy"
-            },
-            "autoUpdate": {
-              "$ref": "#/definitions/autoUpdate"
-            }
-          }
-        },
-        "auth": {
-          "type": "object",
-          "title": "MariaDB-Zugangsdaten",
-          "description": "Erzeugt ein behaltenes Secret oder verwendet ein vorhandenes Secret mit database, username, password und root-password.",
-          "additionalProperties": false,
-          "required": ["create", "database", "username"],
-          "properties": {
-            "create": {
-              "type": "boolean",
-              "title": "Secret erzeugen",
-              "default": true
-            },
-            "existingSecret": {
-              "type": "string",
-              "title": "Vorhandenes Secret",
-              "default": ""
-            },
-            "database": {
-              "type": "string",
-              "title": "Datenbankname",
-              "default": "drupal",
-              "minLength": 1,
-              "pattern": "^[A-Za-z0-9_]+$"
-            },
-            "username": {
-              "type": "string",
-              "title": "Datenbankbenutzer",
-              "default": "drupal",
-              "minLength": 1,
-              "pattern": "^[A-Za-z0-9_]+$"
-            },
-            "password": {
-              "type": "string",
-              "format": "password",
-              "title": "Datenbankpasswort",
-              "description": "Leer erzeugt bei der Erstinstallation ein zufälliges Passwort.",
-              "default": ""
-            },
-            "rootPassword": {
-              "type": "string",
-              "format": "password",
-              "title": "MariaDB-Root-Passwort",
-              "description": "Leer erzeugt bei der Erstinstallation ein zufälliges Passwort.",
-              "default": ""
-            }
-          }
-        },
-        "persistence": {
-          "$ref": "#/definitions/databasePersistence"
-        },
-        "podAnnotations": {
-          "$ref": "#/definitions/annotations"
-        },
-        "podSecurityContext": {
-          "$ref": "#/definitions/podSecurityContext"
-        },
-        "securityContext": {
-          "$ref": "#/definitions/containerSecurityContext"
-        },
-        "resources": {
-          "$ref": "#/definitions/resources"
-        },
-        "nodeSelector": {
-          "$ref": "#/definitions/stringMap"
-        },
-        "tolerations": {
-          "$ref": "#/definitions/tolerations"
-        },
-        "affinity": {
-          "$ref": "#/definitions/freeObject"
         }
       }
     }
@@ -711,8 +713,8 @@
   "definitions": {
     "annotations": {
       "type": "object",
-      "title": "Annotationen",
-      "description": "Zusätzliche Schlüssel/Wert-Annotationen.",
+      "title": "Optional: Annotationen",
+      "description": "Zusaetzliche Schluessel/Wert-Annotationen.",
       "default": {},
       "additionalProperties": {
         "type": "string"
@@ -720,7 +722,7 @@
     },
     "stringMap": {
       "type": "object",
-      "title": "Node Selector",
+      "title": "Erweitert: Node Selector",
       "description": "Optionale Node-Label-Auswahl.",
       "default": {},
       "additionalProperties": {
@@ -729,14 +731,14 @@
     },
     "freeObject": {
       "type": "object",
-      "title": "Erweiterte Kubernetes-Konfiguration",
+      "title": "Erweitert: Kubernetes-Konfiguration",
       "description": "Freies Kubernetes-Objekt; bei komplexen Einstellungen die YAML View verwenden.",
       "default": {},
       "additionalProperties": true
     },
     "tolerations": {
       "type": "array",
-      "title": "Tolerations",
+      "title": "Erweitert: Tolerations",
       "description": "Optionale Kubernetes-Tolerations; komplexe Werte lassen sich komfortabler in der YAML View pflegen.",
       "default": [],
       "items": {
@@ -751,8 +753,8 @@
     },
     "autoUpdate": {
       "type": "object",
-      "title": "OpenShift Image-Aktualisierung",
-      "description": "ImageStream und Image-Change-Trigger für bewegliche Tags. Wird nur auf OpenShift ausgewertet.",
+      "title": "Optional: OpenShift Image-Aktualisierung",
+      "description": "ImageStream und Image-Change-Trigger fuer bewegliche Tags. Wird nur auf OpenShift ausgewertet.",
       "additionalProperties": false,
       "properties": {
         "enabled": {
@@ -762,21 +764,21 @@
         },
         "scheduledImport": {
           "type": "boolean",
-          "title": "Image regelmäßig importieren",
+          "title": "Image regelmaessig importieren",
           "default": true
         }
       }
     },
     "yesNo": {
       "type": "string",
-      "title": "Beim Containerstart ausführen",
+      "title": "Beim Containerstart ausfuehren",
       "enum": ["no", "yes"],
       "default": "no"
     },
     "probeTiming": {
       "type": "object",
-      "title": "Probe-Zeitwerte",
-      "description": "Intervall, Timeout und Anzahl zulässiger Fehlschläge.",
+      "title": "Erweitert: Probe-Zeitwerte",
+      "description": "Intervall, Timeout und Anzahl zulaessiger Fehlschlaege.",
       "additionalProperties": false,
       "properties": {
         "periodSeconds": {
@@ -798,7 +800,7 @@
     },
     "resources": {
       "type": "object",
-      "title": "CPU und Arbeitsspeicher",
+      "title": "Optional: CPU und Arbeitsspeicher",
       "description": "Kubernetes Resource Requests und Limits als Mengenangaben, zum Beispiel 100m oder 256Mi.",
       "additionalProperties": false,
       "properties": {
@@ -840,13 +842,13 @@
     },
     "podSecurityContext": {
       "type": "object",
-      "title": "Pod Security Context",
-      "description": "OpenShift weist UID/GID normalerweise dynamisch zu. Feste IDs nur für passende Images und Kubernetes verwenden.",
+      "title": "Erweitert: Pod Security Context",
+      "description": "OpenShift weist UID/GID normalerweise dynamisch zu. Feste IDs nur fuer passende Images und Kubernetes verwenden.",
       "additionalProperties": true,
       "properties": {
         "runAsNonRoot": {
           "type": "boolean",
-          "title": "Als Non-Root ausführen",
+          "title": "Als Non-Root ausfuehren",
           "default": true
         },
         "runAsUser": {
@@ -856,7 +858,7 @@
         },
         "runAsGroup": {
           "type": "integer",
-          "title": "Numerische primäre GID",
+          "title": "Numerische primaere GID",
           "minimum": 1
         },
         "fsGroup": {
@@ -885,8 +887,8 @@
     },
     "containerSecurityContext": {
       "type": "object",
-      "title": "Container Security Context",
-      "description": "Restriktive Container-Sicherheitseinstellungen; Änderungen können die OpenShift-SCC-Kompatibilität beeinträchtigen.",
+      "title": "Erweitert: Container Security Context",
+      "description": "Restriktive Container-Sicherheitseinstellungen; Aenderungen koennen die OpenShift-SCC-Kompatibilitaet beeintraechtigen.",
       "additionalProperties": true,
       "properties": {
         "allowPrivilegeEscalation": {
@@ -896,12 +898,12 @@
         },
         "runAsNonRoot": {
           "type": "boolean",
-          "title": "Als Non-Root ausführen",
+          "title": "Als Non-Root ausfuehren",
           "default": true
         },
         "readOnlyRootFilesystem": {
           "type": "boolean",
-          "title": "Root-Dateisystem schreibgeschützt"
+          "title": "Root-Dateisystem schreibgeschuetzt"
         },
         "capabilities": {
           "type": "object",
@@ -919,7 +921,7 @@
             },
             "add": {
               "type": "array",
-              "title": "Zusätzliche Capabilities",
+              "title": "Zusaetzliche Capabilities",
               "default": [],
               "uniqueItems": true,
               "items": {
@@ -932,8 +934,8 @@
     },
     "drupalPersistence": {
       "type": "object",
-      "title": "Drupal-Persistenz",
-      "description": "Persistenter öffentlicher und privater Drupal-Dateispeicher.",
+      "title": "WICHTIG: Drupal-Persistenz",
+      "description": "Allgemeiner Default: ReadWriteOnce. Die vier DDB-Profile verwenden fuer upgrade-kompatibles Verhalten ReadWriteMany. Mehrere Drupal-Replikate benoetigen ReadWriteMany.",
       "additionalProperties": false,
       "properties": {
         "create": {
@@ -964,7 +966,7 @@
         },
         "size": {
           "type": "string",
-          "title": "Speichergröße",
+          "title": "Speichergroesse",
           "default": "5Gi",
           "minLength": 1
         },
@@ -978,8 +980,8 @@
     },
     "redisPersistence": {
       "type": "object",
-      "title": "Redis-Persistenz",
-      "description": "Persistenter Speicher für Redis AOF.",
+      "title": "Optional: Redis-Persistenz",
+      "description": "Persistenter Speicher fuer Redis AOF.",
       "additionalProperties": false,
       "properties": {
         "create": {
@@ -1010,7 +1012,7 @@
         },
         "size": {
           "type": "string",
-          "title": "Speichergröße",
+          "title": "Speichergroesse",
           "default": "2Gi",
           "minLength": 1
         },
@@ -1024,8 +1026,8 @@
     },
     "databasePersistence": {
       "type": "object",
-      "title": "MariaDB-Persistenz",
-      "description": "Persistenter Speicher für die MariaDB-Datenbank.",
+      "title": "Optional: MariaDB-Persistenz",
+      "description": "Persistenter Speicher fuer die MariaDB-Datenbank.",
       "additionalProperties": false,
       "properties": {
         "create": {
@@ -1056,7 +1058,7 @@
         },
         "size": {
           "type": "string",
-          "title": "Speichergröße",
+          "title": "Speichergroesse",
           "default": "10Gi",
           "minLength": 1
         },
