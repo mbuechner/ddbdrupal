@@ -10,7 +10,7 @@ enthalten und benötigt keinen Checkout des DDBgo- oder DDBpro-Quellcodes.
 | `main` | exakt `version` aus `charts/drupal/Chart.yaml` | `/helm/stable/` |
 
 Das Chart wird zusätzlich unter
-`oci://ghcr.io/<owner>/helm/drupal` veröffentlicht. Owner und Pages-URL werden
+`oci://ghcr.io/<owner>/ddbdrupal` veröffentlicht. Owner und Pages-URL werden
 im Workflow aus dem neuen GitHub-Repository abgeleitet; beim Umbenennen sind
 keine Workflow-Anpassungen erforderlich.
 
@@ -49,11 +49,11 @@ zuerst entpacken:
 
 ```sh
 CHART_VERSION=0.2.0
-helm pull oci://ghcr.io/OWNER/helm/drupal \
+helm pull oci://ghcr.io/OWNER/ddbdrupal \
   --version "$CHART_VERSION" \
   --untar
 
-helm upgrade --install ddbgo ./drupal \
+helm upgrade --install ddbgo ./ddbdrupal \
   --namespace ddbgo \
   --values ./drupal/values-ddbgo.yaml \
   --atomic \
@@ -71,7 +71,7 @@ Beispiel für den stabilen Kanal:
 apiVersion: helm.openshift.io/v1beta1
 kind: ProjectHelmChartRepository
 metadata:
-  name: drupal
+  name: ddbdrupal
   namespace: ddbgo
 spec:
   name: Drupal environments

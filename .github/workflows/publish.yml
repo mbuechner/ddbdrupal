@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: publish-drupal-helm-chart
+  group: publish-ddbdrupal-helm-chart
   cancel-in-progress: false
 
 permissions:
@@ -21,7 +21,6 @@ env:
   CHART_DIR: charts/drupal
   HELM_VERSION: v4.2.0
   REGISTRY: ghcr.io
-  OCI_NAMESPACE: helm
 
 jobs:
   publish:
@@ -118,7 +117,7 @@ jobs:
           chart_version="$base_version"
 
           package="$package_dir/${chart_name}-${chart_version}.tgz"
-          repository="oci://${REGISTRY}/${owner}/${OCI_NAMESPACE}"
+          repository="oci://${REGISTRY}/${owner}"
           reference="${repository}/${chart_name}"
 
           mkdir -p "$package_dir"
