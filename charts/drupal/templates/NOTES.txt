@@ -1,9 +1,9 @@
 Drupal was installed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
 
 {{- if eq .Values.platform.type "openshift" }}
-Route (cluster-side HTTP): http://{{ .Values.drupal.externalHost }}
+Route (cluster-side HTTP): http://{{ include "drupal.drupalExternalHost" . }}
 {{- else }}
-Ingress (cluster-side HTTP): http://{{ .Values.drupal.externalHost }}
+Ingress (cluster-side HTTP): http://{{ include "drupal.drupalExternalHost" . }}
 {{- end }}
 
 By default, helm uninstall removes all chart-created resources, including the

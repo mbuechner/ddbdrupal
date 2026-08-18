@@ -1,6 +1,11 @@
 # Wiederverwendbare Drupal-Umgebung für Kubernetes und OpenShift.
 # Website-spezifische Einstellungen stehen in values-*.yaml.
 
+# Zentrale Profilauswahl für OpenShift Form View und CLI. Gepflegte Profile
+# bestimmen Release-Name, Domain und Drupal-Image gemeinsam. custom verwendet
+# die frei konfigurierbaren Werte unter drupal.
+deploymentProfile: custom
+
 platform:
   # openshift erzeugt Route, ImageStreams und Image-Change-Trigger. kubernetes
   # erzeugt stattdessen ein networking.k8s.io/v1 Ingress. Für Kubernetes sollte
@@ -8,27 +13,23 @@ platform:
   type: openshift
 
 # Alle Ressourcen- und Container-Namen werden aus dem Helm-Release-Namen
-# abgeleitet. Die Hauptcontainer heißen <release>-drupal, <release>-redis und
-# <release>-db; auch Init-Container tragen den Release-Namen als Präfix.
-naming:
-  # Für wiederverwendbare Installationen dürfen Release- und Namespace-Name
-  # voneinander abweichen. Die fest benannten DDB-Profile aktivieren den Schutz.
-  enforceReleaseNamespaceMatch: false
-  # Optional kann die Installation auf bekannte Release-Namen begrenzt werden.
-  # Leer erlaubt die Wiederverwendung für beliebige Webseiten.
-  allowedReleaseNames: []
+# abgeleitet. Release und Namespace müssen deshalb übereinstimmen. Die
+# Hauptcontainer heißen <release>-drupal, <release>-redis und <release>-db.
 
 # Zusätzliche Annotationen für alle vom Chart erzeugten Kubernetes- und
 # OpenShift-Ressourcen. Werte können je Umgebung überschrieben und weitere
 # Annotationen ergänzt werden; leere Strings werden ausgelassen.
 # Helm-Owner-Annotationen und resource-policy verwaltet das Chart selbst.
-commonAnnotations: {}
+commonAnnotations:
+  dnb.contact/emails: m.buechner@dnb.de
+  dnb.contact/persons: Michael Büchner
 
 verticalPodAutoscaler:
   # Erzeugt je einen VPA für Drupal, Redis und MariaDB. Voraussetzung ist, dass
   # der Vertical Pod Autoscaler Operator samt CRD im Cluster installiert ist.
-  # Standardmäßig aus, damit eine Installation keine optionale CRD voraussetzt.
-  enabled: false
+  # OpenShift-Standard. values-kubernetes.yaml deaktiviert VPA, weil die CRD
+  # dort nicht vorausgesetzt werden kann.
+  enabled: true
   # Off sammelt ausschließlich Empfehlungen und verändert keine Pods.
   updateMode: "Off"
   # Empfehlungen enthalten Requests und proportional angepasste Limits.
@@ -51,28 +52,23 @@ serviceAccounts:
   databaseName: ""
 
 drupal:
-  # Zentrale öffentliche Domain. Route-Name/-Host und Trusted-Host-Regel werden
-  # daraus abgeleitet. Die internen Health-Probes verwenden diese Domain nicht.
-  # Absichtlich nicht auflösbarer Platzhalter. In der OpenShift Form View oder
-  # per Values-Datei durch den öffentlichen DNS-Namen der Website ersetzen.
+  # Nur für deploymentProfile=custom. Gepflegte Profile setzen Domain,
+  # Route/Ingress und Trusted-Host-Regel automatisch. Die internen
+  # Health-Probes verwenden die öffentliche Domain nicht.
   externalHost: change-me.example.invalid
   # Recreate verhindert, dass während eines Rollouts zwei Drupal-Pods zugleich
   # Änderungen am gemeinsam verwendeten Dateispeicher durchführen.
   replicaCount: 1
   image:
-    # Vordefinierte Drupal-Images für die OpenShift Form View. Bei "custom"
-    # werden repository und tag verwendet. Ein anderes Preset überschreibt
-    # beide Werte intern mit der dokumentierten, zusammengehörigen Kombination.
-    preset: custom
     # Austauschbares Drupal-Anwendungsimage. Es muss den in README.md
     # dokumentierten Containervertrag erfüllen.
-    # Nur für preset=custom; zugleich lauffähiger Standardwert.
+    # Nur für deploymentProfile=custom; zugleich lauffähiger Standardwert.
     repository: ghcr.io/mbuechner/ddbgo
-    # Nur für preset=custom.
+    # Nur für deploymentProfile=custom.
     tag: tagged
-    # Always ist bei beweglichen Tags möglich; der ImageStream-Trigger setzt
-    # beim Rollout normalerweise eine eindeutige Digest-Referenz ein.
-    pullPolicy: IfNotPresent
+    # Die unterstützten Tags sind beweglich. OpenShift setzt beim automatischen
+    # Rollout normalerweise zusätzlich eine eindeutige Digest-Referenz ein.
+    pullPolicy: Always
     autoUpdate:
       # Erzeugt einen ImageStream und einen Image-Change-Trigger. Eine Änderung
       # des importierten Digests startet automatisch ein neues Deployment.
@@ -188,11 +184,10 @@ drupal:
     # demselben Release und Namespace übernimmt diesen PVC wieder.
     retain: true
     existingClaim: ""
-    # ReadWriteOnce funktioniert mit den üblichen Standard-StorageClasses. Bei
-    # replicaCount > 1 ist eine RWX-fähige StorageClass erforderlich und der
-    # Wert muss auf ReadWriteMany geändert werden.
+    # OpenShift verwendet gemeinsam nutzbaren Speicher. Kubernetes kann dies in
+    # values-kubernetes.yaml für eine Einzelreplik auf ReadWriteOnce ändern.
     accessModes:
-      - ReadWriteOnce
+      - ReadWriteMany
     size: 5Gi
     # Leer verwendet die Standard-StorageClass des Clusters.
     storageClass: ""
@@ -255,10 +250,9 @@ redis:
     # Übernahme durch denselben Release-Namen im selben Namespace.
     retain: true
     existingClaim: ""
-    # Redis besitzt hier genau eine Replik; ReadWriteOnce vermeidet eine
-    # unnötige Abhängigkeit von einer RWX-fähigen StorageClass.
+    # OpenShift verwendet einheitlich gemeinsam nutzbaren Speicher.
     accessModes:
-      - ReadWriteOnce
+      - ReadWriteMany
     size: 2Gi
     # Leer verwendet die Standard-StorageClass des Clusters.
     storageClass: ""
@@ -310,7 +304,7 @@ database:
   auth:
     # Bei create=false muss existingSecret die Schlüssel "database", "username",
     # "password" und "root-password" enthalten. Bei erzeugten Secrets werden
-    # database und username aus Release/Preset abgeleitet. Erzeugte Secrets
+    # database und username aus Release/Deployment-Profil abgeleitet. Secrets
     # bleiben bei helm uninstall erhalten und werden erneut übernommen.
     create: true
     existingSecret: ""
@@ -326,10 +320,9 @@ database:
     # Übernahme durch denselben Release-Namen im selben Namespace.
     retain: true
     existingClaim: ""
-    # MariaDB besitzt hier genau eine Replik; ReadWriteOnce vermeidet eine
-    # unnötige Abhängigkeit von einer RWX-fähigen StorageClass.
+    # OpenShift verwendet einheitlich gemeinsam nutzbaren Speicher.
     accessModes:
-      - ReadWriteOnce
+      - ReadWriteMany
     size: 10Gi
     # Leer verwendet die Standard-StorageClass des Clusters.
     storageClass: ""

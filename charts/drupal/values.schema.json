@@ -3,17 +3,22 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "deploymentProfile",
     "platform",
-    "drupal",
-    "redis",
-    "database",
-    "verticalPodAutoscaler"
+    "drupal"
   ],
   "properties": {
+    "deploymentProfile": {
+      "type": "string",
+      "title": "01 WICHTIG: Deployment-Profil auswaehlen",
+      "description": "Steuert Domain, Drupal-Image und erwarteten Release-Namen gemeinsam. Release/Namespace: ddbgo-production=ddbgo, ddbgo-test=ddbgo-t, ddbpro-production=ddbpro, ddbpro-test=ddbpro-t. custom verwendet die frei konfigurierbaren Werte weiter unten.",
+      "enum": ["custom", "ddbgo-production", "ddbgo-test", "ddbpro-production", "ddbpro-test"],
+      "default": "custom"
+    },
     "platform": {
       "type": "object",
-      "title": "WICHTIG: Zielplattform",
-      "description": "Waehlt OpenShift Route und ImageStreams oder ein Kubernetes Ingress. Ein values-*.yaml-Profil wird nur mit Helm -f geladen; in der Form View die darunter dokumentierten Profilwerte verwenden.",
+      "title": "02 WICHTIG: Zielplattform",
+      "description": "In der OpenShift-Oberflaeche openshift beibehalten. kubernetes erzeugt stattdessen ein Ingress und benoetigt values-kubernetes.yaml.",
       "additionalProperties": false,
       "required": ["type"],
       "properties": {
@@ -28,15 +33,14 @@
     },
     "drupal": {
       "type": "object",
-      "title": "WICHTIG: Website-Profil und Drupal",
-      "description": "Profilwerte: ddbgo = Release ddbgo, Host go.deutsche-digitale-bibliothek.de, Image ghcr.io/mbuechner/ddbgo:tagged; ddbgo-t = Release ddbgo-t, Host go-t.deutsche-digitale-bibliothek.de, gleiches Image mit Tag test; ddbpro = Release ddbpro, Host pro.deutsche-digitale-bibliothek.de, Image ghcr.io/deutsche-digitale-bibliothek/ddbpro:tagged; ddbpro-t = Release ddbpro-t, Host pro-t.deutsche-digitale-bibliothek.de, gleiches Image mit Tag test.",
+      "title": "03 WICHTIG: Website und Drupal",
+      "description": "Das Deployment-Profil setzt Domain und Drupal-Image automatisch. Die mit 'Nur bei custom' bezeichneten Felder werden bei einem gepflegten Profil ignoriert.",
       "additionalProperties": false,
-      "required": ["externalHost", "image", "persistence"],
       "properties": {
         "externalHost": {
           "type": "string",
-          "title": "WICHTIG: Oeffentlicher DNS-Hostname",
-          "description": "Host fuer Route oder Ingress und Drupals Trusted-Host-Regel. DDBgo: go.deutsche-digitale-bibliothek.de; DDBgo-Test: go-t.deutsche-digitale-bibliothek.de; DDBpro: pro.deutsche-digitale-bibliothek.de; DDBpro-Test: pro-t.deutsche-digitale-bibliothek.de.",
+          "title": "Nur bei custom: Oeffentlicher DNS-Hostname",
+          "description": "Wird bei den vier gepflegten Profilen automatisch gesetzt. Nur mit deploymentProfile=custom fuer Route/Ingress und Drupals Trusted-Host-Regel verwenden.",
           "default": "change-me.example.invalid",
           "minLength": 4,
           "maxLength": 253,
@@ -44,22 +48,14 @@
         },
         "image": {
           "type": "object",
-          "title": "WICHTIG: Drupal-Image und Profil",
-          "description": "DDBgo und ddbgo-t verwenden ghcr.io/mbuechner/ddbgo. DDBpro und ddbpro-t verwenden ghcr.io/deutsche-digitale-bibliothek/ddbpro. Produktion nutzt tagged, Test nutzt test.",
+          "title": "Nur bei custom: Drupal-Image",
+          "description": "Repository und Tag werden bei den vier gepflegten Deployment-Profilen automatisch gesetzt und nur mit deploymentProfile=custom ausgewertet.",
           "additionalProperties": false,
-          "required": ["preset", "repository", "tag", "pullPolicy"],
           "properties": {
-            "preset": {
-              "type": "string",
-              "title": "Drupal-Image-Profil",
-              "description": "Waehlt eine gepflegte DDBgo-/DDBpro-Kombination. custom verwendet die darunter eingetragenen Werte fuer Repository und Tag.",
-              "enum": ["custom", "ddbgo-production", "ddbgo-test", "ddbpro-production", "ddbpro-test"],
-              "default": "custom"
-            },
             "repository": {
               "type": "string",
               "title": "Image-Repository",
-              "description": "Wird nur mit Profil custom verwendet. DDBgo: ghcr.io/mbuechner/ddbgo; DDBpro: ghcr.io/deutsche-digitale-bibliothek/ddbpro.",
+              "description": "Nur mit deploymentProfile=custom verwendet.",
               "default": "ghcr.io/mbuechner/ddbgo",
               "minLength": 1,
               "pattern": "^[^\\s]+$"
@@ -67,7 +63,7 @@
             "tag": {
               "type": "string",
               "title": "Image-Tag",
-              "description": "Wird nur mit Profil custom verwendet. Produktion: tagged; Test: test.",
+              "description": "Nur mit deploymentProfile=custom verwendet.",
               "default": "tagged",
               "minLength": 1,
               "pattern": "^[^\\s]+$"
@@ -366,17 +362,15 @@
     },
     "database": {
       "type": "object",
-      "title": "WICHTIG: MariaDB-Profil",
-      "description": "Datenbank und Benutzer werden aus Release und Preset abgeleitet. Leere Passwoerter werden bei der Erstinstallation sicher erzeugt.",
+      "title": "Optional: MariaDB-Zugang und Einstellungen",
+      "description": "Datenbank und Benutzer werden aus Release und Deployment-Profil abgeleitet. Leere Passwoerter werden bei der Erstinstallation sicher erzeugt.",
       "additionalProperties": false,
-      "required": ["image", "auth", "persistence"],
       "properties": {
         "auth": {
           "type": "object",
-          "title": "WICHTIG: Datenbankzugang",
+          "title": "Optional: Datenbankzugang",
           "description": "Datenbank und Benutzer werden automatisch abgeleitet. Passwoerter leer lassen, um sie sicher zu erzeugen, oder ein vorhandenes Secret angeben.",
           "additionalProperties": false,
-          "required": ["create"],
           "properties": {
             "create": {
               "type": "boolean",
@@ -423,7 +417,6 @@
           "title": "Optional: MariaDB-Image",
           "description": "Offizielles MariaDB-UBI-Image oder kompatibler Ersatz.",
           "additionalProperties": false,
-          "required": ["repository", "tag", "pullPolicy"],
           "properties": {
             "repository": {
               "type": "string",
@@ -476,7 +469,6 @@
       "title": "Optional: Redis-Cache",
       "description": "Optionaler Redis-Cache einschliesslich Image, Zugangsdaten, Persistenz und Ressourcen.",
       "additionalProperties": false,
-      "required": ["enabled", "image", "secret", "persistence"],
       "properties": {
         "enabled": {
           "type": "boolean",
@@ -488,7 +480,6 @@
           "title": "Optional: Redis-Image",
           "description": "Offizielles Redis-Image oder kompatibler Ersatz.",
           "additionalProperties": false,
-          "required": ["repository", "tag", "pullPolicy"],
           "properties": {
             "repository": {
               "type": "string",
@@ -562,42 +553,16 @@
         }
       }
     },
-    "naming": {
-      "type": "object",
-      "title": "Optional: Release-Namen absichern",
-      "description": "Schutz vor Installationen unter einem falschen Release- oder Namespace-Namen.",
-      "additionalProperties": false,
-      "properties": {
-        "enforceReleaseNamespaceMatch": {
-          "type": "boolean",
-          "title": "Release und Namespace muessen uebereinstimmen",
-          "default": false
-        },
-        "allowedReleaseNames": {
-          "type": "array",
-          "title": "Erlaubte Release-Namen",
-          "description": "Leer erlaubt beliebige Namen. Website-Profile begrenzen die Auswahl auf ihren vorgesehenen Release-Namen.",
-          "default": [],
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 53
-          }
-        }
-      }
-    },
     "verticalPodAutoscaler": {
       "type": "object",
-      "title": "Optional: Vertical Pod Autoscaler",
+      "title": "Optional: Ressourcenoptimierung mit VPA",
       "description": "Nur aktivieren, wenn VPA-Operator und CRD installiert sind. Der Modus Off sammelt nur Empfehlungen.",
       "additionalProperties": false,
-      "required": ["enabled", "updateMode"],
       "properties": {
         "enabled": {
           "type": "boolean",
           "title": "VPA-Ressourcen erzeugen",
-          "default": false
+          "default": true
         },
         "updateMode": {
           "type": "string",
@@ -891,7 +856,7 @@
     "drupalPersistence": {
       "type": "object",
       "title": "WICHTIG: Drupal-Persistenz",
-      "description": "Allgemeiner Default: ReadWriteOnce. Die vier DDB-Profile verwenden fuer upgrade-kompatibles Verhalten ReadWriteMany. Mehrere Drupal-Replikate benoetigen ReadWriteMany.",
+      "description": "OpenShift-Default: ReadWriteMany. values-kubernetes.yaml verwendet fuer eine Einzelreplik ReadWriteOnce.",
       "additionalProperties": false,
       "properties": {
         "create": {
@@ -912,7 +877,7 @@
         "accessModes": {
           "type": "array",
           "title": "Zugriffsmodi",
-          "default": ["ReadWriteOnce"],
+          "default": ["ReadWriteMany"],
           "minItems": 1,
           "uniqueItems": true,
           "items": {
@@ -958,7 +923,7 @@
         "accessModes": {
           "type": "array",
           "title": "Zugriffsmodi",
-          "default": ["ReadWriteOnce"],
+          "default": ["ReadWriteMany"],
           "minItems": 1,
           "uniqueItems": true,
           "items": {
@@ -1004,7 +969,7 @@
         "accessModes": {
           "type": "array",
           "title": "Zugriffsmodi",
-          "default": ["ReadWriteOnce"],
+          "default": ["ReadWriteMany"],
           "minItems": 1,
           "uniqueItems": true,
           "items": {

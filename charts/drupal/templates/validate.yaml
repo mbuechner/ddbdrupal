@@ -1,7 +1,5 @@
-{{- if .Values.naming.enforceReleaseNamespaceMatch }}
 {{- if ne .Release.Name .Release.Namespace }}
 {{- fail (printf "release name %q must match namespace %q" .Release.Name .Release.Namespace) }}
-{{- end }}
 {{- end }}
 {{- if not (has .Values.platform.type (list "openshift" "kubernetes")) }}
 {{- fail "platform.type must be openshift or kubernetes" }}
@@ -138,7 +136,7 @@
 {{- if or (not $tempPath) (not (hasPrefix "/" $tempPath)) }}
 {{- fail "drupal.config.tempPath must be an absolute path" }}
 {{- end }}
-{{- if not .Values.drupal.externalHost }}
+{{- if not (include "drupal.drupalExternalHost" .) }}
 {{- fail "drupal.externalHost must not be empty because it defines the Route or Ingress and trusted host" }}
 {{- end }}
 {{- if and .Values.drupal.config.drushOptionsUri (not (or (hasPrefix "https://" .Values.drupal.config.drushOptionsUri) (hasPrefix "http://" .Values.drupal.config.drushOptionsUri))) }}
@@ -147,8 +145,7 @@
 {{- if not (hasPrefix "/" .Values.drupal.probes.path) }}
 {{- fail "drupal.probes.path must start with /" }}
 {{- end }}
-{{- if .Values.naming.allowedReleaseNames }}
-{{- if not (has .Release.Name .Values.naming.allowedReleaseNames) }}
-{{- fail (printf "release name %q is not allowed; expected one of: %s" .Release.Name (join ", " .Values.naming.allowedReleaseNames)) }}
-{{- end }}
+{{- $profileReleaseName := include "drupal.profileReleaseName" . -}}
+{{- if and $profileReleaseName (ne .Release.Name $profileReleaseName) }}
+{{- fail (printf "deploymentProfile %q requires release and namespace %q, got %q" .Values.deploymentProfile $profileReleaseName .Release.Name) }}
 {{- end }}

@@ -42,8 +42,7 @@ jobs:
             args=(
               "$CHART_DIR"
               --namespace test-release
-              --set naming.enforceReleaseNamespaceMatch=false
-              --set 'naming.allowedReleaseNames={test-release}'
+              --set deploymentProfile=custom
               --strict
             )
             if [[ -n "$profile" ]]; then

@@ -1,10 +1,11 @@
 # ddbdrupal Helm-Chart
 
 Das Chart installiert eine Drupal-Anwendung mit MariaDB und optionalem Redis
-auf OpenShift oder Kubernetes. In der OpenShift Form View kann das Drupal-Image
-über `drupal.image.preset` gewählt werden. `custom` verwendet stattdessen
-`drupal.image.repository` und `drupal.image.tag`. Mitgelieferte Profile decken
-DDBgo und DDBpro jeweils für Produktion und Test ab.
+auf OpenShift oder Kubernetes. In der OpenShift Form View steht
+`deploymentProfile` ganz oben. Das Profil setzt Domain und Drupal-Image
+gemeinsam und prüft den passenden Release-Namen. `custom` verwendet stattdessen
+die frei konfigurierbare Domain sowie `drupal.image.repository` und
+`drupal.image.tag`.
 
 ## Profile und wichtige Unterschiede
 
@@ -15,11 +16,11 @@ DDBgo und DDBpro jeweils für Produktion und Test ab.
 | `values-ddbpro.yaml` | `ddbpro` | `pro.deutsche-digitale-bibliothek.de` | `ghcr.io/deutsche-digitale-bibliothek/ddbpro:tagged` |
 | `values-ddbpro-test.yaml` | `ddbpro-t` | `pro-t.deutsche-digitale-bibliothek.de` | `ghcr.io/deutsche-digitale-bibliothek/ddbpro:test` |
 
-Die OpenShift Form View bietet dieselben vier Image-Varianten als
-`ddbgo-production`, `ddbgo-test`, `ddbpro-production` und `ddbpro-test` an.
-Weitere Images bleiben mit `custom` frei konfigurierbar.
+Die OpenShift Form View bietet dieselben vier vollständigen Deployment-Profile
+als `ddbgo-production`, `ddbgo-test`, `ddbpro-production` und `ddbpro-test` an.
+Weitere Domains und Images bleiben mit `custom` frei konfigurierbar.
 
-Datenbank und Benutzer werden automatisch aus Release und Preset abgeleitet:
+Datenbank und Benutzer werden automatisch aus Release und Deployment-Profil abgeleitet:
 `ddbgo[-t]` verwendet `ddbgodb`/`ddbgo`, `ddbpro[-t]` verwendet
 `ddbprodb`/`ddbpro`.
 
@@ -30,8 +31,9 @@ OpenShift Developer Catalog als beschriftete Form View mit Hilfetexten,
 Auswahllisten und Eingabeprüfung dar. Die YAML View bleibt für selten benötigte
 oder frei strukturierte Einstellungen verfügbar.
 
-Wichtige profilabhängige Werte stehen oben; optionale und erweiterte Anpassungen
-folgen darunter. Die sichtbaren Texte verwenden wegen älterer OpenShift-
+Die Profilauswahl steht ganz oben. Danach folgen die wenigen wichtigen
+Website-Einstellungen; optionale und erweiterte Anpassungen stehen weiter
+unten. Die sichtbaren Texte verwenden wegen älterer OpenShift-
 Zeichensatzprobleme `ae`, `oe`, `ue` und `ss`.
 
 ## Installation
@@ -49,8 +51,9 @@ Für Kubernetes `values-kubernetes.yaml` als letzte Values-Datei ergänzen.
   `<release>-db`; Init-Container beginnen ebenfalls mit `<release>-`.
 - MariaDB, der Schutz vor fremden Ressourcen sowie die VPA-Ressourcen `cpu`
   und `memory` sind feste Chart-Invarianten und deshalb keine Values-Optionen.
-- Allgemeine Defaults: `ReadWriteOnce`, VPA aus.
-- DDB-Profile: `ReadWriteMany`, VPA an; RWX-Storage und VPA-CRD erforderlich.
+- OpenShift-Defaults: `ReadWriteMany`, VPA an; RWX-Storage und VPA-CRD
+  erforderlich.
+- `values-kubernetes.yaml`: `ReadWriteOnce`, VPA aus.
 - Mehrere Drupal-Replikate benötigen `ReadWriteMany`.
 - Erzeugte PVCs und Secrets bleiben bei `helm uninstall` erhalten.
 - Ein alternatives Drupal-Image muss den dokumentierten DDBgo-/DDBpro-

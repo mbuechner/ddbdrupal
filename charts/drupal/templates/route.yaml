@@ -1,5 +1,5 @@
 {{- if and (eq .Values.platform.type "openshift") .Values.drupal.route.enabled }}
-{{- $name := .Values.drupal.externalHost -}}
+{{- $name := include "drupal.drupalExternalHost" . -}}
 {{- include "drupal.assertAvailable" (dict "root" . "apiVersion" "route.openshift.io/v1" "kind" "Route" "name" $name) }}
 apiVersion: route.openshift.io/v1
 kind: Route
@@ -15,7 +15,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  host: {{ .Values.drupal.externalHost }}
+  host: {{ include "drupal.drupalExternalHost" . }}
   to:
     kind: Service
     name: {{ include "drupal.drupalName" . }}

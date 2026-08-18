@@ -13,14 +13,15 @@ validierte Form View bereit.
 | `values-ddbpro.yaml` | `ddbpro` | `pro.deutsche-digitale-bibliothek.de` | `ghcr.io/deutsche-digitale-bibliothek/ddbpro:tagged` |
 | `values-ddbpro-test.yaml` | `ddbpro-t` | `pro-t.deutsche-digitale-bibliothek.de` | `ghcr.io/deutsche-digitale-bibliothek/ddbpro:test` |
 
-In der OpenShift Form View stehen die vier Image-Profile unter
-`drupal.image.preset` zur Auswahl. `custom` erlaubt weiterhin beliebige
-kompatible Drupal-Images über Repository und Tag.
+In der OpenShift Form View steht `deploymentProfile` als erste und wichtigste
+Auswahl. Das Profil setzt Domain und Drupal-Image gemeinsam und prüft den
+passenden Release-Namen. `custom` erlaubt weiterhin eine freie Domain und ein
+beliebiges kompatibles Drupal-Image.
 
 `drupal.externalHost` ist der öffentliche DNS-Name für Route/Ingress und
 Drupals Trusted-Host-Regel.
 
-Datenbank und Benutzer werden aus Release und Preset abgeleitet. Dabei ergeben
+Datenbank und Benutzer werden aus Release und Deployment-Profil abgeleitet. Dabei ergeben
 `ddbgo` und `ddbgo-t` den Zugang `ddbgodb`/`ddbgo`; `ddbpro` und `ddbpro-t`
 ergeben `ddbprodb`/`ddbpro`.
 
@@ -52,9 +53,9 @@ helm upgrade --install ddbgo ./charts/drupal \
   `<release>-db`; Init-Container beginnen ebenfalls mit `<release>-`.
 - MariaDB, der Schutz vor fremden Ressourcen sowie die VPA-Ressourcen `cpu`
   und `memory` sind feste Chart-Invarianten und deshalb keine Values-Optionen.
-- Die allgemeinen Defaults verwenden `ReadWriteOnce` und deaktivieren VPA.
-- Die DDB-Profile bewahren für kompatible Upgrades `ReadWriteMany` und VPA;
-  dafür müssen RWX-Storage und VPA-CRD im Cluster vorhanden sein.
+- OpenShift verwendet standardmäßig `ReadWriteMany` und aktiviert VPA; dafür
+  müssen RWX-Storage und die VPA-CRD im Cluster vorhanden sein.
+- `values-kubernetes.yaml` stellt VPA aus und verwendet `ReadWriteOnce`.
 - Mehrere Drupal-Replikate benötigen `ReadWriteMany`.
 - Erzeugte PVCs und Secrets bleiben bei `helm uninstall` erhalten.
 
