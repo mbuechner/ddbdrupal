@@ -12,7 +12,7 @@ metadata:
   annotations:
     {{- include "drupal.protectionAnnotations" . | nindent 4 }}
     {{- if and (eq .Values.platform.type "openshift") .Values.redis.image.autoUpdate.enabled }}
-    image.openshift.io/triggers: {{ include "drupal.imageTrigger" (dict "root" . "name" $name "tag" .Values.redis.image.tag "container" "redis") | quote }}
+    image.openshift.io/triggers: {{ include "drupal.imageTrigger" (dict "root" . "name" $name "tag" .Values.redis.image.tag "container" $name) | quote }}
     {{- end }}
 spec:
   serviceName: {{ $name }}
@@ -39,7 +39,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       initContainers:
-        - name: prepare-storage
+        - name: {{ include "drupal.componentName" (dict "root" . "component" "prepare-redis-storage") }}
           image: {{ printf "%s:%s" .Values.redis.image.repository .Values.redis.image.tag | quote }}
           imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
           command:
@@ -65,7 +65,7 @@ spec:
             - name: redis-auth
               mountPath: /generated-redis-auth
       containers:
-        - name: redis
+        - name: {{ $name }}
           image: {{ printf "%s:%s" .Values.redis.image.repository .Values.redis.image.tag | quote }}
           imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
           args:

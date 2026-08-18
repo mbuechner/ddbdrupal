@@ -1,6 +1,4 @@
 # DDBgo test profile.
-nameOverride: ddbgo
-
 naming:
   enforceReleaseNamespaceMatch: true
   allowedReleaseNames:
@@ -18,8 +16,7 @@ verticalPodAutoscaler:
 drupal:
   externalHost: go-t.deutsche-digitale-bibliothek.de
   image:
-    repository: ghcr.io/mbuechner/ddbgo
-    tag: test
+    preset: ddbgo-test
     pullPolicy: Always
   persistence:
     accessModes:
@@ -31,9 +28,6 @@ redis:
       - ReadWriteMany
 
 database:
-  auth:
-    database: ddbgodb
-    username: ddbgo
   persistence:
     accessModes:
       - ReadWriteMany

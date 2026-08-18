@@ -1,6 +1,11 @@
 {{/* Chart name. */}}
 {{- define "drupal.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- $products := dict
+      "ddbgo-production" "ddbgo"
+      "ddbgo-test" "ddbgo"
+      "ddbpro-production" "ddbpro"
+      "ddbpro-test" "ddbpro" -}}
+{{- get $products .Values.drupal.image.preset | default .Chart.Name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/* Resource base name: the requested naming scheme is the release name. */}}
@@ -9,7 +14,10 @@
 {{- end }}
 
 {{- define "drupal.componentName" -}}
-{{- printf "%s-%s" (include "drupal.fullname" .root) .component | trunc 63 | trimSuffix "-" }}
+{{- $component := .component | trimPrefix "-" | trimSuffix "-" -}}
+{{- $maxReleaseLength := sub 62 (len $component) | int -}}
+{{- $releaseName := include "drupal.fullname" .root | trunc $maxReleaseLength | trimSuffix "-" -}}
+{{- printf "%s-%s" $releaseName $component | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{- define "drupal.labels" -}}
@@ -46,21 +54,19 @@ check when lookup is unavailable (for example, client-side helm template).
 */}}
 {{- define "drupal.assertAvailable" -}}
 {{- $root := .root -}}
-{{- if $root.Values.protection.failOnExistingResource -}}
-  {{- $existing := lookup .apiVersion .kind $root.Release.Namespace .name -}}
-  {{- if $existing -}}
-    {{- $annotations := dig "metadata" "annotations" (dict) $existing -}}
-    {{- $ownerName := get $annotations "meta.helm.sh/release-name" -}}
-    {{- $ownerNamespace := get $annotations "meta.helm.sh/release-namespace" -}}
-    {{- $ownedByRelease := and (eq $ownerName $root.Release.Name) (eq $ownerNamespace $root.Release.Namespace) -}}
-    {{- if $root.Release.IsInstall -}}
-      {{- if not (and (default false .allowAdoption) $ownedByRelease) -}}
-        {{- fail (printf "%s %s/%s already exists and is not an adoptable retained resource of release %s/%s; refusing to overwrite it" .kind $root.Release.Namespace .name $root.Release.Namespace $root.Release.Name) -}}
-      {{- end -}}
-    {{- else -}}
-      {{- if not $ownedByRelease -}}
-        {{- fail (printf "%s %s/%s is not owned by release %s/%s; refusing to overwrite it" .kind $root.Release.Namespace .name $root.Release.Namespace $root.Release.Name) -}}
-      {{- end -}}
+{{- $existing := lookup .apiVersion .kind $root.Release.Namespace .name -}}
+{{- if $existing -}}
+  {{- $annotations := dig "metadata" "annotations" (dict) $existing -}}
+  {{- $ownerName := get $annotations "meta.helm.sh/release-name" -}}
+  {{- $ownerNamespace := get $annotations "meta.helm.sh/release-namespace" -}}
+  {{- $ownedByRelease := and (eq $ownerName $root.Release.Name) (eq $ownerNamespace $root.Release.Namespace) -}}
+  {{- if $root.Release.IsInstall -}}
+    {{- if not (and (default false .allowAdoption) $ownedByRelease) -}}
+      {{- fail (printf "%s %s/%s already exists and is not an adoptable retained resource of release %s/%s; refusing to overwrite it" .kind $root.Release.Namespace .name $root.Release.Namespace $root.Release.Name) -}}
+    {{- end -}}
+  {{- else -}}
+    {{- if not $ownedByRelease -}}
+      {{- fail (printf "%s %s/%s is not owned by release %s/%s; refusing to overwrite it" .kind $root.Release.Namespace .name $root.Release.Namespace $root.Release.Name) -}}
     {{- end -}}
   {{- end -}}
 {{- end -}}
@@ -76,6 +82,51 @@ check when lookup is unavailable (for example, client-side helm template).
 
 {{- define "drupal.databaseName" -}}
 {{ include "drupal.componentName" (dict "root" . "component" "db") }}
+{{- end }}
+
+{{/* Curated Drupal image presets; custom keeps repository and tag configurable. */}}
+{{- define "drupal.drupalImageRepository" -}}
+{{- $repositories := dict
+      "ddbgo-production" "ghcr.io/mbuechner/ddbgo"
+      "ddbgo-test" "ghcr.io/mbuechner/ddbgo"
+      "ddbpro-production" "ghcr.io/deutsche-digitale-bibliothek/ddbpro"
+      "ddbpro-test" "ghcr.io/deutsche-digitale-bibliothek/ddbpro" -}}
+{{- if eq .Values.drupal.image.preset "custom" -}}
+{{- .Values.drupal.image.repository -}}
+{{- else -}}
+{{- get $repositories .Values.drupal.image.preset -}}
+{{- end -}}
+{{- end }}
+
+{{- define "drupal.drupalImageTag" -}}
+{{- $tags := dict
+      "ddbgo-production" "tagged"
+      "ddbgo-test" "test"
+      "ddbpro-production" "tagged"
+      "ddbpro-test" "test" -}}
+{{- if eq .Values.drupal.image.preset "custom" -}}
+{{- .Values.drupal.image.tag -}}
+{{- else -}}
+{{- get $tags .Values.drupal.image.preset -}}
+{{- end -}}
+{{- end }}
+
+{{/* Database identity derived from preset/release. */}}
+{{- define "drupal.databaseIdentity" -}}
+{{- $products := dict
+      "ddbgo-production" "ddbgo"
+      "ddbgo-test" "ddbgo"
+      "ddbpro-production" "ddbpro"
+      "ddbpro-test" "ddbpro" -}}
+{{- get $products .Values.drupal.image.preset | default .Release.Name | replace "-" "_" | trunc 32 | trimSuffix "_" -}}
+{{- end }}
+
+{{- define "drupal.databaseAuthUsername" -}}
+{{- include "drupal.databaseIdentity" . -}}
+{{- end }}
+
+{{- define "drupal.databaseAuthDatabase" -}}
+{{- printf "%sdb" (include "drupal.databaseIdentity" . | trunc 62 | trimSuffix "_") -}}
 {{- end }}
 
 {{- define "drupal.drupalServiceAccountName" -}}

@@ -29,14 +29,14 @@
     "drupal": {
       "type": "object",
       "title": "WICHTIG: Website-Profil und Drupal",
-      "description": "Profilwerte: ddbgo = Release ddbgo, Host go.deutsche-digitale-bibliothek.de, Image ghcr.io/mbuechner/ddbgo:tagged; ddbgo-t = Release ddbgo-t, Host go-t.deutsche-digitale-bibliothek.de, gleiches Image mit Tag test; ddbpro = Release ddbpro, Image ghcr.io/deutsche-digitale-bibliothek/ddbpro:tagged und echten Host eintragen; ddbpro-t = Release ddbpro-t, gleiches Image mit Tag test und echten Test-Host eintragen.",
+      "description": "Profilwerte: ddbgo = Release ddbgo, Host go.deutsche-digitale-bibliothek.de, Image ghcr.io/mbuechner/ddbgo:tagged; ddbgo-t = Release ddbgo-t, Host go-t.deutsche-digitale-bibliothek.de, gleiches Image mit Tag test; ddbpro = Release ddbpro, Host pro.deutsche-digitale-bibliothek.de, Image ghcr.io/deutsche-digitale-bibliothek/ddbpro:tagged; ddbpro-t = Release ddbpro-t, Host pro-t.deutsche-digitale-bibliothek.de, gleiches Image mit Tag test.",
       "additionalProperties": false,
       "required": ["externalHost", "image", "persistence"],
       "properties": {
         "externalHost": {
           "type": "string",
           "title": "WICHTIG: Oeffentlicher DNS-Hostname",
-          "description": "Host fuer Route oder Ingress und Drupals Trusted-Host-Regel. DDBgo: go.deutsche-digitale-bibliothek.de; DDBgo-Test: go-t.deutsche-digitale-bibliothek.de. Die .invalid-Platzhalter fuer DDBpro und DDBpro-Test muessen ersetzt werden.",
+          "description": "Host fuer Route oder Ingress und Drupals Trusted-Host-Regel. DDBgo: go.deutsche-digitale-bibliothek.de; DDBgo-Test: go-t.deutsche-digitale-bibliothek.de; DDBpro: pro.deutsche-digitale-bibliothek.de; DDBpro-Test: pro-t.deutsche-digitale-bibliothek.de.",
           "default": "change-me.example.invalid",
           "minLength": 4,
           "maxLength": 253,
@@ -47,12 +47,19 @@
           "title": "WICHTIG: Drupal-Image und Profil",
           "description": "DDBgo und ddbgo-t verwenden ghcr.io/mbuechner/ddbgo. DDBpro und ddbpro-t verwenden ghcr.io/deutsche-digitale-bibliothek/ddbpro. Produktion nutzt tagged, Test nutzt test.",
           "additionalProperties": false,
-          "required": ["repository", "tag", "pullPolicy"],
+          "required": ["preset", "repository", "tag", "pullPolicy"],
           "properties": {
+            "preset": {
+              "type": "string",
+              "title": "Drupal-Image-Profil",
+              "description": "Waehlt eine gepflegte DDBgo-/DDBpro-Kombination. custom verwendet die darunter eingetragenen Werte fuer Repository und Tag.",
+              "enum": ["custom", "ddbgo-production", "ddbgo-test", "ddbpro-production", "ddbpro-test"],
+              "default": "custom"
+            },
             "repository": {
               "type": "string",
               "title": "Image-Repository",
-              "description": "DDBgo: ghcr.io/mbuechner/ddbgo; DDBpro: ghcr.io/deutsche-digitale-bibliothek/ddbpro.",
+              "description": "Wird nur mit Profil custom verwendet. DDBgo: ghcr.io/mbuechner/ddbgo; DDBpro: ghcr.io/deutsche-digitale-bibliothek/ddbpro.",
               "default": "ghcr.io/mbuechner/ddbgo",
               "minLength": 1,
               "pattern": "^[^\\s]+$"
@@ -60,7 +67,7 @@
             "tag": {
               "type": "string",
               "title": "Image-Tag",
-              "description": "Produktion: tagged; Test: test.",
+              "description": "Wird nur mit Profil custom verwendet. Produktion: tagged; Test: test.",
               "default": "tagged",
               "minLength": 1,
               "pattern": "^[^\\s]+$"
@@ -360,16 +367,16 @@
     "database": {
       "type": "object",
       "title": "WICHTIG: MariaDB-Profil",
-      "description": "DDBgo und ddbgo-t verwenden Datenbank ddbgodb mit Benutzer ddbgo. DDBpro und ddbpro-t verwenden Datenbank ddbprodb mit Benutzer ddbpro. Leere Passwoerter werden bei der Erstinstallation sicher erzeugt.",
+      "description": "Datenbank und Benutzer werden aus Release und Preset abgeleitet. Leere Passwoerter werden bei der Erstinstallation sicher erzeugt.",
       "additionalProperties": false,
-      "required": ["enabled", "image", "auth", "persistence"],
+      "required": ["image", "auth", "persistence"],
       "properties": {
         "auth": {
           "type": "object",
-          "title": "WICHTIG: Datenbankname und Benutzer",
-          "description": "DDBgo/ddbgo-t: database=ddbgodb und username=ddbgo. DDBpro/ddbpro-t: database=ddbprodb und username=ddbpro. Passwoerter leer lassen, um sie automatisch zu erzeugen, oder ein vorhandenes Secret angeben.",
+          "title": "WICHTIG: Datenbankzugang",
+          "description": "Datenbank und Benutzer werden automatisch abgeleitet. Passwoerter leer lassen, um sie sicher zu erzeugen, oder ein vorhandenes Secret angeben.",
           "additionalProperties": false,
-          "required": ["create", "database", "username"],
+          "required": ["create"],
           "properties": {
             "create": {
               "type": "boolean",
@@ -380,20 +387,6 @@
               "type": "string",
               "title": "Vorhandenes Secret",
               "default": ""
-            },
-            "database": {
-              "type": "string",
-              "title": "Datenbankname",
-              "default": "drupal",
-              "minLength": 1,
-              "pattern": "^[A-Za-z0-9_]+$"
-            },
-            "username": {
-              "type": "string",
-              "title": "Datenbankbenutzer",
-              "default": "drupal",
-              "minLength": 1,
-              "pattern": "^[A-Za-z0-9_]+$"
             },
             "password": {
               "type": "string",
@@ -410,12 +403,6 @@
               "default": ""
             }
           }
-        },
-        "enabled": {
-          "type": "boolean",
-          "title": "MariaDB aktivieren",
-          "description": "Die unterstuetzten Drupal-Images benoetigen MariaDB; false wird vom Chart abgelehnt.",
-          "default": true
         },
         "config": {
           "type": "object",
@@ -575,12 +562,6 @@
         }
       }
     },
-    "nameOverride": {
-      "type": "string",
-      "title": "Optional: Anwendungslabel ueberschreiben",
-      "description": "Optionales app.kubernetes.io/name-Label. Ressourcennamen werden weiterhin aus dem Helm-Release abgeleitet.",
-      "default": ""
-    },
     "naming": {
       "type": "object",
       "title": "Optional: Release-Namen absichern",
@@ -623,18 +604,6 @@
           "title": "Update-Modus",
           "enum": ["Off", "Initial", "Recreate", "InPlaceOrRecreate", "InPlace", "Auto"],
           "default": "Off"
-        },
-        "controlledResources": {
-          "type": "array",
-          "title": "Gesteuerte Ressourcen",
-          "default": ["cpu", "memory"],
-          "minItems": 2,
-          "maxItems": 2,
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "enum": ["cpu", "memory"]
-          }
         },
         "controlledValues": {
           "type": "string",
@@ -695,19 +664,6 @@
     },
     "commonAnnotations": {
       "$ref": "#/definitions/annotations"
-    },
-    "protection": {
-      "type": "object",
-      "title": "Erweitert: Schutz vorhandener Ressourcen",
-      "description": "Verhindert, dass gleichnamige fremde Kubernetes-Ressourcen versehentlich uebernommen werden.",
-      "additionalProperties": false,
-      "properties": {
-        "failOnExistingResource": {
-          "type": "boolean",
-          "title": "Bei fremden Ressourcen abbrechen",
-          "default": true
-        }
-      }
     }
   },
   "definitions": {

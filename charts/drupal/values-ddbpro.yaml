@@ -1,6 +1,4 @@
-# DDBpro production profile. Set the real external host before installation.
-nameOverride: ddbpro
-
+# DDBpro production profile.
 naming:
   enforceReleaseNamespaceMatch: true
   allowedReleaseNames:
@@ -16,10 +14,9 @@ verticalPodAutoscaler:
   enabled: true
 
 drupal:
-  externalHost: ddbpro.example.invalid
+  externalHost: pro.deutsche-digitale-bibliothek.de
   image:
-    repository: ghcr.io/deutsche-digitale-bibliothek/ddbpro
-    tag: tagged
+    preset: ddbpro-production
   persistence:
     accessModes:
       - ReadWriteMany
@@ -30,9 +27,6 @@ redis:
       - ReadWriteMany
 
 database:
-  auth:
-    database: ddbprodb
-    username: ddbpro
   persistence:
     accessModes:
       - ReadWriteMany

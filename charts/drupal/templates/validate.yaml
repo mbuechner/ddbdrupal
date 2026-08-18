@@ -12,11 +12,6 @@
 {{- if and (eq .Values.platform.type "kubernetes") (not (has .Values.drupal.ingress.pathType (list "Exact" "Prefix" "ImplementationSpecific"))) }}
 {{- fail "drupal.ingress.pathType must be Exact, Prefix or ImplementationSpecific" }}
 {{- end }}
-{{- if .Values.naming.allowedReleaseNames }}
-{{- if not (has .Release.Name .Values.naming.allowedReleaseNames) }}
-{{- fail (printf "release name %q is not allowed; expected one of: %s" .Release.Name (join ", " .Values.naming.allowedReleaseNames)) }}
-{{- end }}
-{{- end }}
 {{- $commonAnnotations := .Values.commonAnnotations | default dict -}}
 {{- if or (hasKey $commonAnnotations "meta.helm.sh/release-name") (hasKey $commonAnnotations "meta.helm.sh/release-namespace") (hasKey $commonAnnotations "helm.sh/resource-policy") }}
 {{- fail "commonAnnotations must not override Helm ownership or resource-policy annotations" }}
@@ -24,10 +19,10 @@
 {{- if lt (int .Values.drupal.dependencyChecks.retryIntervalSeconds) 1 }}
 {{- fail "drupal.dependencyChecks.retryIntervalSeconds must be at least 1" }}
 {{- end }}
-{{- if not .Values.drupal.image.repository }}
+{{- if not (include "drupal.drupalImageRepository" .) }}
 {{- fail "drupal.image.repository must not be empty" }}
 {{- end }}
-{{- if not .Values.drupal.image.tag }}
+{{- if not (include "drupal.drupalImageTag" .) }}
 {{- fail "drupal.image.tag must not be empty" }}
 {{- end }}
 {{- if and (eq .Values.platform.type "kubernetes") .Values.redis.enabled (eq .Values.redis.image.repository "docker.io/library/redis") (not (hasKey .Values.redis.podSecurityContext "runAsUser")) }}
@@ -38,9 +33,6 @@
 {{- end }}
 {{- if not (has .Values.verticalPodAutoscaler.controlledValues (list "RequestsAndLimits" "RequestsOnly")) }}
 {{- fail "verticalPodAutoscaler.controlledValues must be RequestsAndLimits or RequestsOnly" }}
-{{- end }}
-{{- if or (ne (len .Values.verticalPodAutoscaler.controlledResources) 2) (not (has "cpu" .Values.verticalPodAutoscaler.controlledResources)) (not (has "memory" .Values.verticalPodAutoscaler.controlledResources)) }}
-{{- fail "verticalPodAutoscaler.controlledResources must contain exactly cpu and memory" }}
 {{- end }}
 {{- if not (has .Values.drupal.env.UPDATEDB_ON_STARTUP (list "yes" "no")) }}
 {{- fail "drupal.env.UPDATEDB_ON_STARTUP must be yes or no" }}
@@ -75,9 +67,6 @@
 {{- if and .Values.database.auth.create .Values.database.auth.existingSecret }}
 {{- fail "database.auth.create and database.auth.existingSecret are mutually exclusive" }}
 {{- end }}
-{{- if not .Values.database.enabled }}
-{{- fail "database.enabled must be true because this application requires MariaDB" }}
-{{- end }}
 {{- if not (has .Values.database.config.transactionIsolation (list "READ-UNCOMMITTED" "READ-COMMITTED" "REPEATABLE-READ" "SERIALIZABLE")) }}
 {{- fail "database.config.transactionIsolation must be one of READ-UNCOMMITTED, READ-COMMITTED, REPEATABLE-READ or SERIALIZABLE" }}
 {{- end }}
@@ -105,7 +94,7 @@
 {{- $persistentComponents := list
       (dict "enabled" true "component" "drupal" "name" (include "drupal.drupalClaimName" .) "requiresReadWriteMany" (gt (int .Values.drupal.replicaCount) 1) "persistence" .Values.drupal.persistence)
       (dict "enabled" .Values.redis.enabled "component" "redis" "name" (include "drupal.redisClaimName" .) "requiresReadWriteMany" false "persistence" .Values.redis.persistence)
-      (dict "enabled" .Values.database.enabled "component" "database" "name" (include "drupal.databaseClaimName" .) "requiresReadWriteMany" false "persistence" .Values.database.persistence) -}}
+      (dict "enabled" true "component" "database" "name" (include "drupal.databaseClaimName" .) "requiresReadWriteMany" false "persistence" .Values.database.persistence) -}}
 {{- range $item := $persistentComponents }}
   {{- if $item.enabled }}
     {{- if eq (len $item.persistence.accessModes) 0 }}
@@ -157,4 +146,9 @@
 {{- end }}
 {{- if not (hasPrefix "/" .Values.drupal.probes.path) }}
 {{- fail "drupal.probes.path must start with /" }}
+{{- end }}
+{{- if .Values.naming.allowedReleaseNames }}
+{{- if not (has .Release.Name .Values.naming.allowedReleaseNames) }}
+{{- fail (printf "release name %q is not allowed; expected one of: %s" .Release.Name (join ", " .Values.naming.allowedReleaseNames)) }}
+{{- end }}
 {{- end }}

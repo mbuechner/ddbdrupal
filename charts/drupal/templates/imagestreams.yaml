@@ -1,8 +1,12 @@
 {{- if eq .Values.platform.type "openshift" }}
+{{- $drupalImage := dict
+      "repository" (include "drupal.drupalImageRepository" .)
+      "tag" (include "drupal.drupalImageTag" .)
+      "autoUpdate" .Values.drupal.image.autoUpdate -}}
 {{- $components := list
-  (dict "enabled" true "component" "drupal" "name" (include "drupal.drupalName" .) "image" .Values.drupal.image)
+  (dict "enabled" true "component" "drupal" "name" (include "drupal.drupalName" .) "image" $drupalImage)
   (dict "enabled" .Values.redis.enabled "component" "redis" "name" (include "drupal.redisName" .) "image" .Values.redis.image)
-  (dict "enabled" .Values.database.enabled "component" "db" "name" (include "drupal.databaseName" .) "image" .Values.database.image)
+  (dict "enabled" true "component" "db" "name" (include "drupal.databaseName" .) "image" .Values.database.image)
 -}}
 {{- range $component := $components }}
 {{- if and $component.enabled $component.image.autoUpdate.enabled }}

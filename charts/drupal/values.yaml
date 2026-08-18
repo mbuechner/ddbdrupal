@@ -1,17 +1,15 @@
 # Wiederverwendbare Drupal-Umgebung für Kubernetes und OpenShift.
 # Website-spezifische Einstellungen stehen in values-*.yaml.
 
-# Überschreibt ausschließlich das app.kubernetes.io/name-Label. Die
-# DDBgo-/DDBpro-Profile setzen es für kompatible Upgrades explizit.
-nameOverride: ""
-
 platform:
   # openshift erzeugt Route, ImageStreams und Image-Change-Trigger. kubernetes
   # erzeugt stattdessen ein networking.k8s.io/v1 Ingress. Für Kubernetes sollte
   # zusätzlich values-kubernetes.yaml verwendet werden.
   type: openshift
 
-# Alle Ressourcennamen werden aus dem Helm-Release-Namen abgeleitet.
+# Alle Ressourcen- und Container-Namen werden aus dem Helm-Release-Namen
+# abgeleitet. Die Hauptcontainer heißen <release>-drupal, <release>-redis und
+# <release>-db; auch Init-Container tragen den Release-Namen als Präfix.
 naming:
   # Für wiederverwendbare Installationen dürfen Release- und Namespace-Name
   # voneinander abweichen. Die fest benannten DDB-Profile aktivieren den Schutz.
@@ -26,13 +24,6 @@ naming:
 # Helm-Owner-Annotationen und resource-policy verwaltet das Chart selbst.
 commonAnnotations: {}
 
-# Schutz vorhandener Ressourcen.
-protection:
-  # Bricht ab, wenn bei der Erstinstallation gleichnamige Ressourcen existieren.
-  # Bei Upgrades werden nur Ressourcen mit passenden Helm-Owner-Annotationen
-  # verändert.
-  failOnExistingResource: true
-
 verticalPodAutoscaler:
   # Erzeugt je einen VPA für Drupal, Redis und MariaDB. Voraussetzung ist, dass
   # der Vertical Pod Autoscaler Operator samt CRD im Cluster installiert ist.
@@ -40,10 +31,6 @@ verticalPodAutoscaler:
   enabled: false
   # Off sammelt ausschließlich Empfehlungen und verändert keine Pods.
   updateMode: "Off"
-  # CPU und Arbeitsspeicher werden in den Empfehlungen berücksichtigt.
-  controlledResources:
-    - cpu
-    - memory
   # Empfehlungen enthalten Requests und proportional angepasste Limits.
   controlledValues: RequestsAndLimits
 
@@ -73,10 +60,15 @@ drupal:
   # Änderungen am gemeinsam verwendeten Dateispeicher durchführen.
   replicaCount: 1
   image:
+    # Vordefinierte Drupal-Images für die OpenShift Form View. Bei "custom"
+    # werden repository und tag verwendet. Ein anderes Preset überschreibt
+    # beide Werte intern mit der dokumentierten, zusammengehörigen Kombination.
+    preset: custom
     # Austauschbares Drupal-Anwendungsimage. Es muss den in README.md
     # dokumentierten Containervertrag erfüllen.
-    # Lauffähiger Referenzwert; Website-Profile überschreiben ihn explizit.
+    # Nur für preset=custom; zugleich lauffähiger Standardwert.
     repository: ghcr.io/mbuechner/ddbgo
+    # Nur für preset=custom.
     tag: tagged
     # Always ist bei beweglichen Tags möglich; der ImageStream-Trigger setzt
     # beim Rollout normalerweise eine eindeutige Digest-Referenz ein.
@@ -296,9 +288,7 @@ redis:
   affinity: {}
 
 database:
-  # MariaDB ist für die unterstützten Drupal-Images erforderlich; false wird
-  # vom Chart bewusst abgelehnt.
-  enabled: true
+  # MariaDB ist fester Bestandteil des Charts und kann nicht deaktiviert werden.
   # Startup und Readiness verwenden `healthcheck.sh --connect
   # --innodb_initialized`; Liveness prüft mit `healthcheck.sh --connect`.
   config:
@@ -319,12 +309,11 @@ database:
       scheduledImport: true
   auth:
     # Bei create=false muss existingSecret die Schlüssel "database", "username",
-    # "password" und "root-password" enthalten. Erzeugte Secrets bleiben bei
-    # helm uninstall erhalten und werden erneut übernommen.
+    # "password" und "root-password" enthalten. Bei erzeugten Secrets werden
+    # database und username aus Release/Preset abgeleitet. Erzeugte Secrets
+    # bleiben bei helm uninstall erhalten und werden erneut übernommen.
     create: true
     existingSecret: ""
-    database: drupal
-    username: drupal
     # Bei einer frischen Datenbank werden leere Passwörter einmalig erzeugt und
     # bei Upgrades weiterverwendet. Bei einem behaltenen MariaDB-PVC ohne altes
     # Secret sind die ursprünglichen Werte oder existingSecret verpflichtend.

@@ -6,16 +6,23 @@ validierte Form View bereit.
 
 ## Profile und wichtige Unterschiede
 
-| Profil | Release | Host | Drupal-Image | Datenbank / Benutzer |
-| --- | --- | --- | --- | --- |
-| `values-ddbgo.yaml` | `ddbgo` | `go.deutsche-digitale-bibliothek.de` | `ghcr.io/mbuechner/ddbgo:tagged` | `ddbgodb` / `ddbgo` |
-| `values-ddbgo-test.yaml` | `ddbgo-t` | `go-t.deutsche-digitale-bibliothek.de` | `ghcr.io/mbuechner/ddbgo:test` | `ddbgodb` / `ddbgo` |
-| `values-ddbpro.yaml` | `ddbpro` | Platzhalter ersetzen | `ghcr.io/deutsche-digitale-bibliothek/ddbpro:tagged` | `ddbprodb` / `ddbpro` |
-| `values-ddbpro-test.yaml` | `ddbpro-t` | Platzhalter ersetzen | `ghcr.io/deutsche-digitale-bibliothek/ddbpro:test` | `ddbprodb` / `ddbpro` |
+| Profil | Release | Host | Drupal-Image |
+| --- | --- | --- | --- |
+| `values-ddbgo.yaml` | `ddbgo` | `go.deutsche-digitale-bibliothek.de` | `ghcr.io/mbuechner/ddbgo:tagged` |
+| `values-ddbgo-test.yaml` | `ddbgo-t` | `go-t.deutsche-digitale-bibliothek.de` | `ghcr.io/mbuechner/ddbgo:test` |
+| `values-ddbpro.yaml` | `ddbpro` | `pro.deutsche-digitale-bibliothek.de` | `ghcr.io/deutsche-digitale-bibliothek/ddbpro:tagged` |
+| `values-ddbpro-test.yaml` | `ddbpro-t` | `pro-t.deutsche-digitale-bibliothek.de` | `ghcr.io/deutsche-digitale-bibliothek/ddbpro:test` |
+
+In der OpenShift Form View stehen die vier Image-Profile unter
+`drupal.image.preset` zur Auswahl. `custom` erlaubt weiterhin beliebige
+kompatible Drupal-Images über Repository und Tag.
 
 `drupal.externalHost` ist der öffentliche DNS-Name für Route/Ingress und
-Drupals Trusted-Host-Regel. Werte unter `.invalid` sind nicht auflösbare
-Platzhalter und müssen ersetzt werden.
+Drupals Trusted-Host-Regel.
+
+Datenbank und Benutzer werden aus Release und Preset abgeleitet. Dabei ergeben
+`ddbgo` und `ddbgo-t` den Zugang `ddbgodb`/`ddbgo`; `ddbpro` und `ddbpro-t`
+ergeben `ddbprodb`/`ddbpro`.
 
 ## Installation
 
@@ -24,18 +31,6 @@ helm upgrade --install RELEASE ./charts/drupal \
   --namespace RELEASE \
   --create-namespace \
   --values ./charts/drupal/PROFILDATEI \
-  --atomic \
-  --timeout 15m
-```
-
-DDBpro benötigt zusätzlich den echten Host:
-
-```sh
-helm upgrade --install ddbpro ./charts/drupal \
-  --namespace ddbpro \
-  --create-namespace \
-  --values ./charts/drupal/values-ddbpro.yaml \
-  --set-string drupal.externalHost=PRODUKTIVER_DDBPRO_HOST \
   --atomic \
   --timeout 15m
 ```
@@ -52,6 +47,11 @@ helm upgrade --install ddbgo ./charts/drupal \
 
 ## Wichtige Hinweise
 
+- Ressourcen und Container werden aus dem Release-Namen abgeleitet. Die
+  Hauptcontainer heißen `<release>-drupal`, `<release>-redis` und
+  `<release>-db`; Init-Container beginnen ebenfalls mit `<release>-`.
+- MariaDB, der Schutz vor fremden Ressourcen sowie die VPA-Ressourcen `cpu`
+  und `memory` sind feste Chart-Invarianten und deshalb keine Values-Optionen.
 - Die allgemeinen Defaults verwenden `ReadWriteOnce` und deaktivieren VPA.
 - Die DDB-Profile bewahren für kompatible Upgrades `ReadWriteMany` und VPA;
   dafür müssen RWX-Storage und VPA-CRD im Cluster vorhanden sein.

@@ -1,7 +1,7 @@
 {{- $claims := list
       (dict "enabled" .Values.drupal.persistence.create "existing" .Values.drupal.persistence.existingClaim "name" (include "drupal.drupalName" .) "component" "drupal" "persistence" .Values.drupal.persistence)
       (dict "enabled" (and .Values.redis.enabled .Values.redis.persistence.create) "existing" .Values.redis.persistence.existingClaim "name" (include "drupal.redisName" .) "component" "redis" "persistence" .Values.redis.persistence)
-      (dict "enabled" (and .Values.database.enabled .Values.database.persistence.create) "existing" .Values.database.persistence.existingClaim "name" (include "drupal.databaseName" .) "component" "db" "persistence" .Values.database.persistence) -}}
+      (dict "enabled" .Values.database.persistence.create "existing" .Values.database.persistence.existingClaim "name" (include "drupal.databaseName" .) "component" "db" "persistence" .Values.database.persistence) -}}
 {{- range $claim := $claims }}
 {{- if and $claim.enabled (not $claim.existing) }}
 {{- include "drupal.assertAvailable" (dict "root" $ "apiVersion" "v1" "kind" "PersistentVolumeClaim" "name" $claim.name "allowAdoption" true) }}

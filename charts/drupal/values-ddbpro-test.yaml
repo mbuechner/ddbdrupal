@@ -1,6 +1,4 @@
-# DDBpro test profile. Set the real external host before installation.
-nameOverride: ddbpro
-
+# DDBpro test profile.
 naming:
   enforceReleaseNamespaceMatch: true
   allowedReleaseNames:
@@ -16,10 +14,9 @@ verticalPodAutoscaler:
   enabled: true
 
 drupal:
-  externalHost: ddbpro-test.example.invalid
+  externalHost: pro-t.deutsche-digitale-bibliothek.de
   image:
-    repository: ghcr.io/deutsche-digitale-bibliothek/ddbpro
-    tag: test
+    preset: ddbpro-test
     pullPolicy: Always
   persistence:
     accessModes:
@@ -31,9 +28,6 @@ redis:
       - ReadWriteMany
 
 database:
-  auth:
-    database: ddbprodb
-    username: ddbpro
   persistence:
     accessModes:
       - ReadWriteMany

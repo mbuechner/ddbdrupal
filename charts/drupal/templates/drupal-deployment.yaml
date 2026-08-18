@@ -11,7 +11,7 @@ metadata:
   annotations:
     {{- include "drupal.protectionAnnotations" . | nindent 4 }}
     {{- if and (eq .Values.platform.type "openshift") .Values.drupal.image.autoUpdate.enabled }}
-    image.openshift.io/triggers: {{ include "drupal.imageTrigger" (dict "root" . "name" $name "tag" .Values.drupal.image.tag "container" "drupal") | quote }}
+    image.openshift.io/triggers: {{ include "drupal.imageTrigger" (dict "root" . "name" $name "tag" (include "drupal.drupalImageTag" .) "container" $name) | quote }}
     {{- end }}
 spec:
   replicas: {{ .Values.drupal.replicaCount }}
@@ -40,7 +40,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       initContainers:
-        - name: wait-for-database
+        - name: {{ include "drupal.componentName" (dict "root" . "component" "wait-for-database") }}
           image: {{ printf "%s:%s" .Values.database.image.repository .Values.database.image.tag | quote }}
           imagePullPolicy: {{ .Values.database.image.pullPolicy }}
           command:
@@ -86,7 +86,7 @@ spec:
           resources:
             {{- toYaml .Values.drupal.dependencyChecks.resources | nindent 12 }}
         {{- if .Values.redis.enabled }}
-        - name: wait-for-redis
+        - name: {{ include "drupal.componentName" (dict "root" . "component" "wait-for-redis") }}
           image: {{ printf "%s:%s" .Values.redis.image.repository .Values.redis.image.tag | quote }}
           imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
           command:
@@ -119,8 +119,8 @@ spec:
           resources:
             {{- toYaml .Values.drupal.dependencyChecks.resources | nindent 12 }}
         {{- end }}
-        - name: prepare-storage
-          image: {{ printf "%s:%s" .Values.drupal.image.repository .Values.drupal.image.tag | quote }}
+        - name: {{ include "drupal.componentName" (dict "root" . "component" "prepare-drupal-storage") }}
+          image: {{ printf "%s:%s" (include "drupal.drupalImageRepository" .) (include "drupal.drupalImageTag" .) | quote }}
           imagePullPolicy: {{ .Values.drupal.image.pullPolicy }}
           command:
             - /bin/sh
@@ -132,8 +132,8 @@ spec:
             - name: drupal-data
               mountPath: /storage
       containers:
-        - name: drupal
-          image: {{ printf "%s:%s" .Values.drupal.image.repository .Values.drupal.image.tag | quote }}
+        - name: {{ $name }}
+          image: {{ printf "%s:%s" (include "drupal.drupalImageRepository" .) (include "drupal.drupalImageTag" .) | quote }}
           imagePullPolicy: {{ .Values.drupal.image.pullPolicy }}
           securityContext:
             {{- toYaml .Values.drupal.securityContext | nindent 12 }}

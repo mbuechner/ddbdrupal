@@ -1,6 +1,4 @@
 # DDBgo production profile.
-nameOverride: ddbgo
-
 naming:
   enforceReleaseNamespaceMatch: true
   allowedReleaseNames:
@@ -18,8 +16,7 @@ verticalPodAutoscaler:
 drupal:
   externalHost: go.deutsche-digitale-bibliothek.de
   image:
-    repository: ghcr.io/mbuechner/ddbgo
-    tag: tagged
+    preset: ddbgo-production
   persistence:
     accessModes:
       - ReadWriteMany
@@ -30,9 +27,6 @@ redis:
       - ReadWriteMany
 
 database:
-  auth:
-    database: ddbgodb
-    username: ddbgo
   persistence:
     accessModes:
       - ReadWriteMany
