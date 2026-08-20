@@ -58,6 +58,12 @@ helm upgrade --install ddbgo ./charts/drupal \
 - `values-kubernetes.yaml` stellt VPA aus und verwendet `ReadWriteOnce`.
 - Mehrere Drupal-Replikate benötigen `ReadWriteMany`.
 - Erzeugte PVCs und Secrets bleiben bei `helm uninstall` erhalten.
+- Einen bereits anderweitig angelegten PVC bindet das Chart nicht automatisch
+  ein. Dafür `COMPONENT.persistence.create=false` und
+  `COMPONENT.persistence.existingClaim=PVC-NAME` setzen (`COMPONENT` ist
+  `drupal`, `redis` oder `database`). Ein vom Chart behaltener PVC wird bei
+  einer Neuinstallation mit demselben Release und Namespace automatisch
+  wiederverwendet, sofern seine Helm-Ownership-Metadaten noch vorhanden sind.
 
 Ein alternatives Drupal-Image muss unprivilegiert auf Port `8080` laufen, den
 konfigurierten Webroot und Health-Endpunkt bereitstellen und den in

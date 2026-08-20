@@ -59,6 +59,8 @@ spec:
                   key: password
           securityContext:
             {{- toYaml .Values.redis.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.storagePreparationResources | nindent 12 }}
           volumeMounts:
             - name: data
               mountPath: /storage

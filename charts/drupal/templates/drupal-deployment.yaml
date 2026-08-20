@@ -128,6 +128,8 @@ spec:
             - mkdir -p /storage/data/public /storage/data/private
           securityContext:
             {{- toYaml .Values.drupal.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.storagePreparationResources | nindent 12 }}
           volumeMounts:
             - name: drupal-data
               mountPath: /storage

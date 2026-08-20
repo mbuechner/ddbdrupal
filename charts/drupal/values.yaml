@@ -40,6 +40,17 @@ verticalPodAutoscaler:
 #   - name: ghcr-pull-secret
 imagePullSecrets: []
 
+# Die kurzlebigen Init-Container legen lediglich Verzeichnisse und kleine
+# Konfigurationsdateien auf den Volumes an. Explizite Requests verhindern, dass
+# eine Namespace-LimitRange dafür unverhältnismäßig große Defaults einsetzt.
+storagePreparationResources:
+  requests:
+    cpu: 5m
+    memory: 16Mi
+  limits:
+    cpu: 50m
+    memory: 64Mi
+
 serviceAccounts:
   # false: Das Chart legt keine ServiceAccounts an. Dann müssen Accounts mit
   # den unten angegebenen oder den automatisch abgeleiteten Namen existieren.
@@ -188,7 +199,7 @@ drupal:
     # values-kubernetes.yaml für eine Einzelreplik auf ReadWriteOnce ändern.
     accessModes:
       - ReadWriteMany
-    size: 5Gi
+    size: 10Gi
     # Leer verwendet die Standard-StorageClass des Clusters.
     storageClass: ""
   # Zusätzliche Annotationen am Pod-Template, nicht am Deployment selbst.
@@ -253,7 +264,7 @@ redis:
     # OpenShift verwendet einheitlich gemeinsam nutzbaren Speicher.
     accessModes:
       - ReadWriteMany
-    size: 2Gi
+    size: 1Gi
     # Leer verwendet die Standard-StorageClass des Clusters.
     storageClass: ""
   podAnnotations: {}
@@ -323,7 +334,7 @@ database:
     # OpenShift verwendet einheitlich gemeinsam nutzbaren Speicher.
     accessModes:
       - ReadWriteMany
-    size: 10Gi
+    size: 5Gi
     # Leer verwendet die Standard-StorageClass des Clusters.
     storageClass: ""
   podAnnotations: {}

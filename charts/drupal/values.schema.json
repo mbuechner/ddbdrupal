@@ -596,6 +596,11 @@
         }
       }
     },
+    "storagePreparationResources": {
+      "title": "Ressourcen fuer Storage-Init-Container",
+      "description": "Kleine explizite Requests und Limits fuer die kurzlebigen prepare-*-storage Init-Container; verhindert hohe, durch Namespace-LimitRanges injizierte Standardwerte.",
+      "$ref": "#/definitions/resources"
+    },
     "serviceAccounts": {
       "type": "object",
       "title": "Erweitert: Service Accounts",
@@ -888,7 +893,7 @@
         "size": {
           "type": "string",
           "title": "Speichergroesse",
-          "default": "5Gi",
+          "default": "10Gi",
           "minLength": 1
         },
         "storageClass": {
@@ -934,7 +939,7 @@
         "size": {
           "type": "string",
           "title": "Speichergroesse",
-          "default": "2Gi",
+          "default": "1Gi",
           "minLength": 1
         },
         "storageClass": {
@@ -980,7 +985,7 @@
         "size": {
           "type": "string",
           "title": "Speichergroesse",
-          "default": "10Gi",
+          "default": "5Gi",
           "minLength": 1
         },
         "storageClass": {

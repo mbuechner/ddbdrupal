@@ -56,5 +56,11 @@ Für Kubernetes `values-kubernetes.yaml` als letzte Values-Datei ergänzen.
 - `values-kubernetes.yaml`: `ReadWriteOnce`, VPA aus.
 - Mehrere Drupal-Replikate benötigen `ReadWriteMany`.
 - Erzeugte PVCs und Secrets bleiben bei `helm uninstall` erhalten.
+- Einen bereits anderweitig angelegten PVC bindet das Chart nicht automatisch
+  ein. Dafür `COMPONENT.persistence.create=false` und
+  `COMPONENT.persistence.existingClaim=PVC-NAME` setzen (`COMPONENT` ist
+  `drupal`, `redis` oder `database`). Ein vom Chart behaltener PVC wird bei
+  einer Neuinstallation mit demselben Release und Namespace automatisch
+  wiederverwendet, sofern seine Helm-Ownership-Metadaten noch vorhanden sind.
 - Ein alternatives Drupal-Image muss den dokumentierten DDBgo-/DDBpro-
   Containervertrag erfüllen.
