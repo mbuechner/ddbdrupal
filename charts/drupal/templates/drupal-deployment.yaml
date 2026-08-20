@@ -147,6 +147,15 @@ spec:
             - configMapRef:
                 name: {{ $name }}
           env:
+            # Startup-Aktionen stehen bewusst direkt im Pod-Template. Eine
+            # Änderung löst dadurch einen Rollout aus; ConfigMap-envFrom allein
+            # würde erst bei einem anderweitig neu gestarteten Pod wirksam.
+            - name: UPDATEDB_ON_STARTUP
+              value: {{ .Values.drupal.env.UPDATEDB_ON_STARTUP | quote }}
+            - name: CONFIG_IMPORT_ON_STARTUP
+              value: {{ .Values.drupal.env.CONFIG_IMPORT_ON_STARTUP | quote }}
+            - name: CACHEREBUILD_ON_STARTUP
+              value: {{ .Values.drupal.env.CACHEREBUILD_ON_STARTUP | quote }}
             - name: HASH_SALT
               valueFrom:
                 secretKeyRef:
