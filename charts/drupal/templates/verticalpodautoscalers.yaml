@@ -1,7 +1,7 @@
 {{- if .Values.verticalPodAutoscaler.enabled }}
 {{- $workloads := list
       (dict "enabled" true "name" (include "drupal.drupalName" .) "component" "drupal" "kind" "Deployment")
-      (dict "enabled" .Values.redis.enabled "name" (include "drupal.redisName" .) "component" "redis" "kind" "StatefulSet")
+      (dict "enabled" true "name" (include "drupal.redisName" .) "component" "redis" "kind" "StatefulSet")
       (dict "enabled" true "name" (include "drupal.databaseName" .) "component" "db" "kind" "StatefulSet") -}}
 {{- range $workload := $workloads }}
 {{- if $workload.enabled }}

@@ -1,6 +1,6 @@
 {{- $services := list
       (dict "enabled" true "name" (include "drupal.drupalName" .) "component" "drupal" "port" .Values.drupal.service.port "targetPort" "http")
-      (dict "enabled" .Values.redis.enabled "name" (include "drupal.redisName" .) "component" "redis" "port" 6379 "targetPort" "redis")
+      (dict "enabled" true "name" (include "drupal.redisName" .) "component" "redis" "port" 6379 "targetPort" "redis")
       (dict "enabled" true "name" (include "drupal.databaseName" .) "component" "db" "port" 3306 "targetPort" "mysql") -}}
 {{- range $service := $services }}
 {{- if $service.enabled }}

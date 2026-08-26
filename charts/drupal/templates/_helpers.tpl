@@ -168,7 +168,7 @@ check when lookup is unavailable (for example, client-side helm template).
 {{- end }}
 
 {{- define "drupal.httpAuthEnabled" -}}
-{{- if or .Values.drupal.basicAuth.existingSecret (and .Values.drupal.env.HTPASSWD_USER .Values.drupal.env.HTPASSWD_PWD) -}}true{{- else -}}false{{- end -}}
+{{- if or .Values.drupal.basicAuth.existingSecret (and .Values.drupal.basicAuth.username .Values.drupal.basicAuth.password) -}}true{{- else -}}false{{- end -}}
 {{- end }}
 
 {{/* Use credentials for local Drupal probes whenever Nginx Basic Auth is enabled. */}}
@@ -196,6 +196,10 @@ httpGet:
 
 {{- define "drupal.redisSecretName" -}}
 {{- default (include "drupal.redisName" .) .Values.redis.secret.existingSecret }}
+{{- end }}
+
+{{- define "drupal.smtpSecretName" -}}
+{{- default (printf "%s-smtp" (include "drupal.drupalName" .)) .Values.drupal.smtp.existingSecret }}
 {{- end }}
 
 {{- define "drupal.databaseSecretName" -}}
@@ -240,11 +244,7 @@ httpGet:
 {{- list $trigger | toJson -}}
 {{- end }}
 
-{{/* Paths supplied by the compatible Drupal container image. */}}
-{{- define "drupal.drupalWebRoot" -}}
-{{- .Values.drupal.config.webRoot | clean | trimSuffix "/" -}}
-{{- end }}
-
+{{/* Public files path supplied by the compatible Drupal container image. */}}
 {{- define "drupal.drupalPublicFilesMountPath" -}}
-{{- printf "%s/%s" (include "drupal.drupalWebRoot" .) .Values.drupal.config.filePublicPath -}}
+{{- "/var/www/html/web/sites/default/files" -}}
 {{- end }}

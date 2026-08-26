@@ -107,17 +107,6 @@ drupal:
     path: /
     pathType: Prefix
   config:
-    # Absoluter Webroot im austauschbaren Drupal-Container.
-    webRoot: /var/www/html/web
-    # Wird als UPDATE_FREE_ACCESS an den kompatiblen Drupal-Container übergeben.
-    updateFreeAccess: false
-    # Relativ zu /var/www/html/web; der PVC-Unterordner data/public wird dort
-    # eingebunden.
-    filePublicPath: sites/default/files
-    # Absolut und außerhalb des Webroots; verwendet PVC-Unterordner data/private.
-    filePrivatePath: /var/www/html/private
-    # Temporäres emptyDir; keine persistenten Daten dort ablegen.
-    tempPath: /tmp
     # TRUSTED_HOST_PATTERNS wird aus localhost, drupal.externalHost und dem
     # Drupal-Ressourcennamen erzeugt. Alle Werte werden automatisch als exakte
     # reguläre Ausdrücke escaped.
@@ -125,27 +114,48 @@ drupal:
       allowLocalhost: true
       # Zusätzliche literale Hostnamen; keine regulären Ausdrücke eintragen.
       additionalHosts: []
-    # Lokaler Request-Kontext für Drush. Drush benötigt dadurch weder DNS noch
-    # Reverse Proxy oder OpenShift Route.
-    drushOptionsUri: http://localhost:8080
-  env:
-    # Exakte Werte der gleichnamigen Container-Umgebungsvariablen. "yes" führt
-    # die jeweilige zustandsändernde Drush-Aktion bei jedem Containerstart aus.
-    UPDATEDB_ON_STARTUP: "no"
-    CONFIG_IMPORT_ON_STARTUP: "no"
-    CACHEREBUILD_ON_STARTUP: "no"
-    # Leere Werte bedeuten <unset>. HTTP Basic Auth wird nur aktiviert, wenn
-    # HTPASSWD_USER und HTPASSWD_PWD gemeinsam gesetzt sind oder existingSecret
-    # verwendet wird. Das Passwort nicht in öffentliche Values-Dateien eintragen.
-    HTPASSWD_GREETING: ""
-    HTPASSWD_USER: ""
-    HTPASSWD_PWD: ""
+  startup:
+    # Führt die jeweilige zustandsändernde Drush-Aktion bei jedem
+    # Containerstart aus. Das Chart erzeugt daraus die *_ON_STARTUP-Variablen.
+    updateDatabase: false
+    importConfig: false
+    rebuildCache: false
   basicAuth:
     # Optionales extern verwaltetes Secret mit den Schlüsseln HTPASSWD_USER und
-    # HTPASSWD_PWD. Bei Verwendung müssen die beiden direkten Values leer sein.
-    # Ohne existingSecret erzeugt das Chart bei gesetzten direkten Values das
-    # behaltene Secret <release>-drupal-http-auth.
+    # HTPASSWD_PWD. Bei Verwendung müssen username und password leer sein.
+    greeting: ""
+    username: ""
+    # Das Passwort nicht in öffentliche Values-Dateien eintragen. Ohne
+    # existingSecret erzeugt das Chart aus username/password das behaltene
+    # Secret <release>-drupal-http-auth.
+    password: ""
     existingSecret: ""
+  smtp:
+    # Alle Werte werden unter ihren gleichnamigen SMTP_*-Variablen an den
+    # Drupal-Container uebergeben. SMTP_PASSWORD wird als Secret behandelt.
+    enabled: false
+    host: smtp.example.org
+    hostBackup: smtp-backup.example.org
+    port: 587
+    protocol: tls
+    autoTls: true
+    timeout: 30
+    username: noreply@example.org
+    password: ""
+    # Optionales Secret mit dem Schluessel SMTP_PASSWORD. Bei Verwendung muss
+    # smtp.password leer bleiben.
+    existingSecret: ""
+    from: noreply@example.org
+    fromName: DDBpro
+    clientHostname: ddbpro.example.org
+    clientHelo: ddbpro.example.org
+    allowHtml: true
+    testAddress: developer@example.org
+    # Leer lassen, sofern ausgehende E-Mails nicht umgeleitet werden sollen.
+    rerouteAddress: ""
+    debugging: false
+    debugLevel: 1
+    keepalive: false
   dependencyChecks:
     # Init-Container lassen Drupal erst starten, wenn ein authentifiziertes
     # SELECT 1 gegen MariaDB und – sofern aktiviert – Redis PING erfolgreich sind.
@@ -229,10 +239,9 @@ drupal:
   affinity: {}
 
 redis:
-  # false deaktiviert Redis-Workload, Service, Secret, PVC und Image-Trigger.
-  enabled: true
-  # Das StatefulSet prüft Startup, Readiness und Liveness mit `redis-cli ping`.
-  # REDISCLI_AUTH wird dabei aus dem Redis-Secret bezogen.
+  # Redis ist ein fester Bestandteil des Charts. Das StatefulSet prüft Startup,
+  # Readiness und Liveness mit `redis-cli ping`; REDISCLI_AUTH wird dabei aus
+  # dem Redis-Secret bezogen.
   image:
     repository: docker.io/library/redis
     # Beweglicher Patch-Tag innerhalb der Redis-8.2-LTS-Linie.

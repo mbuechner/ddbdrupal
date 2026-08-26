@@ -27,6 +27,7 @@ spec:
       annotations:
         drupal.de/chart-version: {{ .Chart.Version | quote }}
         checksum/config: {{ include (print $.Template.BasePath "/drupal-configmap.yaml") . | sha256sum }}
+        checksum/smtp: {{ .Values.drupal.smtp | toJson | sha256sum }}
       {{- with .Values.drupal.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -85,7 +86,6 @@ spec:
             {{- toYaml .Values.database.securityContext | nindent 12 }}
           resources:
             {{- toYaml .Values.drupal.dependencyChecks.resources | nindent 12 }}
-        {{- if .Values.redis.enabled }}
         - name: {{ include "drupal.componentName" (dict "root" . "component" "wait-for-redis") }}
           image: {{ printf "%s:%s" .Values.redis.image.repository .Values.redis.image.tag | quote }}
           imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
@@ -118,7 +118,6 @@ spec:
             {{- toYaml .Values.redis.securityContext | nindent 12 }}
           resources:
             {{- toYaml .Values.drupal.dependencyChecks.resources | nindent 12 }}
-        {{- end }}
         - name: {{ include "drupal.componentName" (dict "root" . "component" "prepare-drupal-storage") }}
           image: {{ printf "%s:%s" (include "drupal.drupalImageRepository" .) (include "drupal.drupalImageTag" .) | quote }}
           imagePullPolicy: {{ .Values.drupal.image.pullPolicy }}
@@ -151,11 +150,11 @@ spec:
             # Änderung löst dadurch einen Rollout aus; ConfigMap-envFrom allein
             # würde erst bei einem anderweitig neu gestarteten Pod wirksam.
             - name: UPDATEDB_ON_STARTUP
-              value: {{ .Values.drupal.env.UPDATEDB_ON_STARTUP | quote }}
+              value: {{ ternary "yes" "no" .Values.drupal.startup.updateDatabase | quote }}
             - name: CONFIG_IMPORT_ON_STARTUP
-              value: {{ .Values.drupal.env.CONFIG_IMPORT_ON_STARTUP | quote }}
+              value: {{ ternary "yes" "no" .Values.drupal.startup.importConfig | quote }}
             - name: CACHEREBUILD_ON_STARTUP
-              value: {{ .Values.drupal.env.CACHEREBUILD_ON_STARTUP | quote }}
+              value: {{ ternary "yes" "no" .Values.drupal.startup.rebuildCache | quote }}
             - name: HASH_SALT
               valueFrom:
                 secretKeyRef:
@@ -190,13 +189,20 @@ spec:
             - name: DRUPAL_HEALTHCHECK_URL
               value: {{ printf "http://localhost:8080%s" .Values.drupal.probes.path | quote }}
             {{- end }}
-            {{- if .Values.redis.enabled }}
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "drupal.redisSecretName" . }}
                   key: password
-            {{- end }}
+            - name: SMTP_PASSWORD
+              {{- if or .Values.drupal.smtp.password .Values.drupal.smtp.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "drupal.smtpSecretName" . }}
+                  key: SMTP_PASSWORD
+              {{- else }}
+              value: ""
+              {{- end }}
           startupProbe:
             {{- include "drupal.drupalProbeHandler" . | nindent 12 }}
             periodSeconds: {{ .Values.drupal.probes.startup.periodSeconds }}
@@ -219,10 +225,10 @@ spec:
               mountPath: {{ include "drupal.drupalPublicFilesMountPath" . | quote }}
               subPath: data/public
             - name: drupal-data
-              mountPath: {{ .Values.drupal.config.filePrivatePath | quote }}
+              mountPath: "/var/www/html/private"
               subPath: data/private
             - name: tmp
-              mountPath: {{ .Values.drupal.config.tempPath | quote }}
+              mountPath: "/tmp"
       volumes:
         - name: drupal-data
           persistentVolumeClaim:

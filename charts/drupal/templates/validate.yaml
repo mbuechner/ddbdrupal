@@ -23,7 +23,7 @@
 {{- if not (include "drupal.drupalImageTag" .) }}
 {{- fail "drupal.image.tag must not be empty" }}
 {{- end }}
-{{- if and (eq .Values.platform.type "kubernetes") .Values.redis.enabled (eq .Values.redis.image.repository "docker.io/library/redis") (not (hasKey .Values.redis.podSecurityContext "runAsUser")) }}
+{{- if and (eq .Values.platform.type "kubernetes") (eq .Values.redis.image.repository "docker.io/library/redis") (not (hasKey .Values.redis.podSecurityContext "runAsUser")) }}
 {{- fail "redis.podSecurityContext.runAsUser must be set for the official Redis image on Kubernetes; load values-kubernetes.yaml after the website profile" }}
 {{- end }}
 {{- if not (has .Values.verticalPodAutoscaler.updateMode (list "Off" "Initial" "Recreate" "InPlaceOrRecreate" "InPlace" "Auto")) }}
@@ -32,20 +32,17 @@
 {{- if not (has .Values.verticalPodAutoscaler.controlledValues (list "RequestsAndLimits" "RequestsOnly")) }}
 {{- fail "verticalPodAutoscaler.controlledValues must be RequestsAndLimits or RequestsOnly" }}
 {{- end }}
-{{- if not (has .Values.drupal.env.UPDATEDB_ON_STARTUP (list "yes" "no")) }}
-{{- fail "drupal.env.UPDATEDB_ON_STARTUP must be yes or no" }}
+{{- if or (and .Values.drupal.basicAuth.username (not .Values.drupal.basicAuth.password)) (and .Values.drupal.basicAuth.password (not .Values.drupal.basicAuth.username)) }}
+{{- fail "drupal.basicAuth.username and drupal.basicAuth.password must either both be set or both be empty" }}
 {{- end }}
-{{- if not (has .Values.drupal.env.CONFIG_IMPORT_ON_STARTUP (list "yes" "no")) }}
-{{- fail "drupal.env.CONFIG_IMPORT_ON_STARTUP must be yes or no" }}
+{{- if and .Values.drupal.basicAuth.existingSecret (or .Values.drupal.basicAuth.username .Values.drupal.basicAuth.password) }}
+{{- fail "drupal.basicAuth.existingSecret is mutually exclusive with drupal.basicAuth.username and drupal.basicAuth.password" }}
 {{- end }}
-{{- if not (has .Values.drupal.env.CACHEREBUILD_ON_STARTUP (list "yes" "no")) }}
-{{- fail "drupal.env.CACHEREBUILD_ON_STARTUP must be yes or no" }}
+{{- if and .Values.drupal.smtp.password .Values.drupal.smtp.existingSecret }}
+{{- fail "drupal.smtp.password and drupal.smtp.existingSecret are mutually exclusive" }}
 {{- end }}
-{{- if or (and .Values.drupal.env.HTPASSWD_USER (not .Values.drupal.env.HTPASSWD_PWD)) (and .Values.drupal.env.HTPASSWD_PWD (not .Values.drupal.env.HTPASSWD_USER)) }}
-{{- fail "drupal.env.HTPASSWD_USER and drupal.env.HTPASSWD_PWD must either both be set or both be empty" }}
-{{- end }}
-{{- if and .Values.drupal.basicAuth.existingSecret (or .Values.drupal.env.HTPASSWD_USER .Values.drupal.env.HTPASSWD_PWD) }}
-{{- fail "drupal.basicAuth.existingSecret is mutually exclusive with drupal.env.HTPASSWD_USER and drupal.env.HTPASSWD_PWD" }}
+{{- if and .Values.drupal.smtp.enabled (not .Values.drupal.smtp.host) }}
+{{- fail "drupal.smtp.host is required when SMTP is enabled" }}
 {{- end }}
 {{- if and .Values.drupal.secret.create .Values.drupal.secret.existingSecret }}
 {{- fail "drupal.secret.create and drupal.secret.existingSecret are mutually exclusive" }}
@@ -56,7 +53,7 @@
 {{- if and .Values.redis.secret.create .Values.redis.secret.existingSecret }}
 {{- fail "redis.secret.create and redis.secret.existingSecret are mutually exclusive" }}
 {{- end }}
-{{- if and .Values.redis.enabled (not .Values.redis.secret.create) (not .Values.redis.secret.existingSecret) }}
+{{- if and (not .Values.redis.secret.create) (not .Values.redis.secret.existingSecret) }}
 {{- fail "redis.secret.existingSecret is required when redis.secret.create=false" }}
 {{- end }}
 {{- if and .Values.redis.secret.password (not (regexMatch "^[A-Za-z0-9]{16,128}$" .Values.redis.secret.password)) }}
@@ -80,7 +77,7 @@
 {{- if and .Values.redis.persistence.create .Values.redis.persistence.existingClaim }}
 {{- fail "redis.persistence.create and redis.persistence.existingClaim are mutually exclusive" }}
 {{- end }}
-{{- if and .Values.redis.enabled (not .Values.redis.persistence.create) (not .Values.redis.persistence.existingClaim) }}
+{{- if and (not .Values.redis.persistence.create) (not .Values.redis.persistence.existingClaim) }}
 {{- fail "redis.persistence.existingClaim is required when redis.persistence.create=false" }}
 {{- end }}
 {{- if and .Values.database.persistence.create .Values.database.persistence.existingClaim }}
@@ -91,7 +88,7 @@
 {{- end }}
 {{- $persistentComponents := list
       (dict "enabled" true "component" "drupal" "name" (include "drupal.drupalClaimName" .) "requiresReadWriteMany" (gt (int .Values.drupal.replicaCount) 1) "persistence" .Values.drupal.persistence)
-      (dict "enabled" .Values.redis.enabled "component" "redis" "name" (include "drupal.redisClaimName" .) "requiresReadWriteMany" false "persistence" .Values.redis.persistence)
+      (dict "enabled" true "component" "redis" "name" (include "drupal.redisClaimName" .) "requiresReadWriteMany" false "persistence" .Values.redis.persistence)
       (dict "enabled" true "component" "database" "name" (include "drupal.databaseClaimName" .) "requiresReadWriteMany" false "persistence" .Values.database.persistence) -}}
 {{- range $item := $persistentComponents }}
   {{- if $item.enabled }}
@@ -117,30 +114,8 @@
     {{- end }}
   {{- end }}
 {{- end }}
-{{- $publicPath := .Values.drupal.config.filePublicPath -}}
-{{- $privatePath := .Values.drupal.config.filePrivatePath -}}
-{{- $tempPath := .Values.drupal.config.tempPath -}}
-{{- $webRoot := include "drupal.drupalWebRoot" . -}}
-{{- if or (not .Values.drupal.config.webRoot) (not (hasPrefix "/" .Values.drupal.config.webRoot)) (eq $webRoot "") }}
-{{- fail "drupal.config.webRoot must be an absolute path below /" }}
-{{- end }}
-{{- if or (not $publicPath) (hasPrefix "/" $publicPath) (regexMatch "(^|/)\\.{1,2}($|/)" $publicPath) }}
-{{- fail (printf "drupal.config.filePublicPath must be a non-empty relative path below %s without . or .. segments" $webRoot) }}
-{{- end }}
-{{- if or (not $privatePath) (not (hasPrefix "/" $privatePath)) }}
-{{- fail "drupal.config.filePrivatePath must be an absolute path" }}
-{{- end }}
-{{- if or (eq $privatePath $webRoot) (hasPrefix (printf "%s/" $webRoot) $privatePath) }}
-{{- fail (printf "drupal.config.filePrivatePath must be outside the Drupal web root %s" $webRoot) }}
-{{- end }}
-{{- if or (not $tempPath) (not (hasPrefix "/" $tempPath)) }}
-{{- fail "drupal.config.tempPath must be an absolute path" }}
-{{- end }}
 {{- if not (include "drupal.drupalExternalHost" .) }}
 {{- fail "drupal.externalHost must not be empty because it defines the Route or Ingress and trusted host" }}
-{{- end }}
-{{- if and .Values.drupal.config.drushOptionsUri (not (or (hasPrefix "https://" .Values.drupal.config.drushOptionsUri) (hasPrefix "http://" .Values.drupal.config.drushOptionsUri))) }}
-{{- fail "drupal.config.drushOptionsUri must start with http:// or https://" }}
 {{- end }}
 {{- if not (hasPrefix "/" .Values.drupal.probes.path) }}
 {{- fail "drupal.probes.path must start with /" }}

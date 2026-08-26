@@ -66,13 +66,16 @@ jobs:
             echo '::error::Kubernetes profile contains an OpenShift API or trigger annotation.'
             exit 1
           fi
+          if ! grep -q 'USE_REDIS: "yes"' "$kubernetes_render" || \
+             ! grep -q 'name: ddbgo-redis' "$kubernetes_render"; then
+            echo '::error::Required Redis workload or Drupal Redis configuration is missing.'
+            exit 1
+          fi
 
-          no_redis_render="$RUNNER_TEMP/drupal-no-redis.yaml"
-          helm template no-redis "$CHART_DIR" \
-            --namespace no-redis \
-            --set redis.enabled=false >"$no_redis_render"
-          if grep -Eq '^  name: no-redis-redis$' "$no_redis_render"; then
-            echo '::error::redis.enabled=false still renders a Redis resource.'
+          if helm template configurable-redis "$CHART_DIR" \
+            --namespace configurable-redis \
+            --set redis.enabled=false >/dev/null 2>&1; then
+            echo '::error::The fixed Redis workload was unexpectedly configurable.'
             exit 1
           fi
 

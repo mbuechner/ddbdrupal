@@ -13,15 +13,31 @@ metadata:
 data:
   MYSQL_HOSTNAME: {{ include "drupal.databaseName" . | quote }}
   MYSQL_PORT: "3306"
-  USE_REDIS: {{ ternary "true" "false" .Values.redis.enabled | quote }}
+  USE_REDIS: "yes"
   REDIS_HOST: {{ include "drupal.redisName" . | quote }}
   REDIS_PORT: "6379"
-  UPDATE_FREE_ACCESS: {{ .Values.drupal.config.updateFreeAccess | quote }}
-  FILE_PUBLIC_PATH: {{ .Values.drupal.config.filePublicPath | quote }}
-  FILE_PRIVATE_PATH: {{ .Values.drupal.config.filePrivatePath | quote }}
+  UPDATE_FREE_ACCESS: "false"
+  FILE_PUBLIC_PATH: "sites/default/files"
+  FILE_PRIVATE_PATH: "/var/www/html/private"
   TRUSTED_HOST_PATTERNS: {{ include "drupal.drupalTrustedHostPatterns" . | quote }}
-  DRUSH_OPTIONS_URI: {{ .Values.drupal.config.drushOptionsUri | quote }}
-  TMP: {{ .Values.drupal.config.tempPath | quote }}
-  {{- with .Values.drupal.env.HTPASSWD_GREETING }}
-  HTPASSWD_GREETING: {{ . | quote }}
-  {{- end }}
+  DRUSH_OPTIONS_URI: "http://localhost:8080"
+  TMP: "/tmp"
+  HTPASSWD_GREETING: {{ .Values.drupal.basicAuth.greeting | quote }}
+  SMTP_ENABLED: {{ ternary "yes" "no" .Values.drupal.smtp.enabled | quote }}
+  SMTP_HOST: {{ .Values.drupal.smtp.host | quote }}
+  SMTP_HOST_BACKUP: {{ .Values.drupal.smtp.hostBackup | quote }}
+  SMTP_PORT: {{ .Values.drupal.smtp.port | quote }}
+  SMTP_PROTOCOL: {{ .Values.drupal.smtp.protocol | quote }}
+  SMTP_AUTOTLS: {{ ternary "yes" "no" .Values.drupal.smtp.autoTls | quote }}
+  SMTP_TIMEOUT: {{ .Values.drupal.smtp.timeout | quote }}
+  SMTP_USERNAME: {{ .Values.drupal.smtp.username | quote }}
+  SMTP_FROM: {{ .Values.drupal.smtp.from | quote }}
+  SMTP_FROM_NAME: {{ .Values.drupal.smtp.fromName | quote }}
+  SMTP_CLIENT_HOSTNAME: {{ .Values.drupal.smtp.clientHostname | quote }}
+  SMTP_CLIENT_HELO: {{ .Values.drupal.smtp.clientHelo | quote }}
+  SMTP_ALLOW_HTML: {{ ternary "yes" "no" .Values.drupal.smtp.allowHtml | quote }}
+  SMTP_TEST_ADDRESS: {{ .Values.drupal.smtp.testAddress | quote }}
+  SMTP_REROUTE_ADDRESS: {{ .Values.drupal.smtp.rerouteAddress | quote }}
+  SMTP_DEBUGGING: {{ ternary "yes" "no" .Values.drupal.smtp.debugging | quote }}
+  SMTP_DEBUG_LEVEL: {{ .Values.drupal.smtp.debugLevel | quote }}
+  SMTP_KEEPALIVE: {{ ternary "yes" "no" .Values.drupal.smtp.keepalive | quote }}

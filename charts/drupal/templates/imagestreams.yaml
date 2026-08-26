@@ -5,7 +5,7 @@
       "autoUpdate" .Values.drupal.image.autoUpdate -}}
 {{- $components := list
   (dict "enabled" true "component" "drupal" "name" (include "drupal.drupalName" .) "image" $drupalImage)
-  (dict "enabled" .Values.redis.enabled "component" "redis" "name" (include "drupal.redisName" .) "image" .Values.redis.image)
+  (dict "enabled" true "component" "redis" "name" (include "drupal.redisName" .) "image" .Values.redis.image)
   (dict "enabled" true "component" "db" "name" (include "drupal.databaseName" .) "image" .Values.database.image)
 -}}
 {{- range $component := $components }}
