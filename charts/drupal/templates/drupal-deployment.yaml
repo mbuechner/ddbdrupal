@@ -139,10 +139,65 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
-          envFrom:
-            - configMapRef:
-                name: {{ $name }}
           env:
+            # Keep the complete application-container contract explicit here.
+            # Non-sensitive values remain centralized in the ConfigMap, while
+            # credentials are read directly from their dedicated Secrets.
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "drupal.databaseSecretName" . }}
+                  key: database
+            - name: MYSQL_HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: MYSQL_HOSTNAME
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "drupal.databaseSecretName" . }}
+                  key: password
+            - name: MYSQL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: MYSQL_PORT
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "drupal.databaseSecretName" . }}
+                  key: username
+            - name: HASH_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "drupal.drupalSecretName" . }}
+                  key: hash-salt
+            - name: UPDATE_FREE_ACCESS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: UPDATE_FREE_ACCESS
+            - name: FILE_PUBLIC_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: FILE_PUBLIC_PATH
+            - name: FILE_PRIVATE_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: FILE_PRIVATE_PATH
+            - name: TMP
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: TMP
+            - name: TRUSTED_HOST_PATTERNS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: TRUSTED_HOST_PATTERNS
             # Startup-Aktionen stehen bewusst direkt im Pod-Template. Eine
             # Änderung löst dadurch einen Rollout aus; ConfigMap-envFrom allein
             # würde erst bei einem anderweitig neu gestarteten Pod wirksam.
@@ -152,26 +207,6 @@ spec:
               value: {{ ternary "yes" "no" .Values.drupal.startup.importConfig | quote }}
             - name: CACHEREBUILD_ON_STARTUP
               value: {{ ternary "yes" "no" .Values.drupal.startup.rebuildCache | quote }}
-            - name: HASH_SALT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "drupal.drupalSecretName" . }}
-                  key: hash-salt
-            - name: MYSQL_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "drupal.databaseSecretName" . }}
-                  key: database
-            - name: MYSQL_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "drupal.databaseSecretName" . }}
-                  key: username
-            - name: MYSQL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "drupal.databaseSecretName" . }}
-                  key: password
             {{- if eq (include "drupal.httpAuthEnabled" .) "true" }}
             - name: HTPASSWD_USER
               valueFrom:
@@ -183,19 +218,141 @@ spec:
                 secretKeyRef:
                   name: {{ include "drupal.httpAuthSecretName" . }}
                   key: HTPASSWD_PWD
+            {{- else }}
+            - name: HTPASSWD_USER
+              value: ""
+            - name: HTPASSWD_PWD
+              value: ""
+            {{- end }}
+            - name: HTPASSWD_GREETING
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: HTPASSWD_GREETING
+            {{- if eq (include "drupal.httpAuthEnabled" .) "true" }}
             - name: DRUPAL_HEALTHCHECK_URL
               value: {{ printf "http://localhost:8080%s" .Values.drupal.probes.path | quote }}
             {{- end }}
+            - name: USE_REDIS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: USE_REDIS
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: REDIS_PORT
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "drupal.redisSecretName" . }}
                   key: password
+            - name: SMTP_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_ENABLED
+            - name: SMTP_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_HOST
+            - name: SMTP_HOST_BACKUP
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_HOST_BACKUP
+            - name: SMTP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_PORT
+            - name: SMTP_PROTOCOL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_PROTOCOL
+            - name: SMTP_AUTOTLS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_AUTOTLS
+            - name: SMTP_TIMEOUT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_TIMEOUT
+            - name: SMTP_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_USERNAME
             - name: SMTP_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "drupal.smtpSecretName" . }}
                   key: SMTP_PASSWORD
+            - name: SMTP_FROM
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_FROM
+            - name: SMTP_FROM_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_FROM_NAME
+            - name: SMTP_CLIENT_HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_CLIENT_HOSTNAME
+            - name: SMTP_CLIENT_HELO
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_CLIENT_HELO
+            - name: SMTP_ALLOW_HTML
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_ALLOW_HTML
+            - name: SMTP_TEST_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_TEST_ADDRESS
+            - name: SMTP_REROUTE_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_REROUTE_ADDRESS
+            - name: SMTP_DEBUGGING
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_DEBUGGING
+            - name: SMTP_DEBUG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_DEBUG_LEVEL
+            - name: SMTP_KEEPALIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: SMTP_KEEPALIVE
+            - name: DRUSH_OPTIONS_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $name }}
+                  key: DRUSH_OPTIONS_URI
           startupProbe:
             {{- include "drupal.drupalProbeHandler" . | nindent 12 }}
             periodSeconds: {{ .Values.drupal.probes.startup.periodSeconds }}
