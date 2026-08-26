@@ -160,15 +160,15 @@ check when lookup is unavailable (for example, client-side helm template).
 {{- end }}
 
 {{- define "drupal.drupalSecretName" -}}
-{{- default (include "drupal.drupalName" .) .Values.drupal.secret.existingSecret }}
+{{- include "drupal.drupalName" . }}
 {{- end }}
 
 {{- define "drupal.httpAuthSecretName" -}}
-{{- default (printf "%s-http-auth" (include "drupal.drupalName" .)) .Values.drupal.basicAuth.existingSecret }}
+{{- printf "%s-http-auth" (include "drupal.drupalName" .) }}
 {{- end }}
 
 {{- define "drupal.httpAuthEnabled" -}}
-{{- if or .Values.drupal.basicAuth.existingSecret (and .Values.drupal.basicAuth.username .Values.drupal.basicAuth.password) -}}true{{- else -}}false{{- end -}}
+{{- if and .Values.drupal.basicAuth.username .Values.drupal.basicAuth.password -}}true{{- else -}}false{{- end -}}
 {{- end }}
 
 {{/* Use credentials for local Drupal probes whenever Nginx Basic Auth is enabled. */}}
@@ -190,20 +190,20 @@ httpGet:
   scheme: HTTP
   httpHeaders:
     - name: Host
-      value: {{ .Values.drupal.probes.hostHeader | quote }}
+      value: "localhost"
 {{- end -}}
 {{- end }}
 
 {{- define "drupal.redisSecretName" -}}
-{{- default (include "drupal.redisName" .) .Values.redis.secret.existingSecret }}
+{{- include "drupal.redisName" . }}
 {{- end }}
 
 {{- define "drupal.smtpSecretName" -}}
-{{- default (printf "%s-smtp" (include "drupal.drupalName" .)) .Values.drupal.smtp.existingSecret }}
+{{- printf "%s-smtp" (include "drupal.drupalName" .) }}
 {{- end }}
 
 {{- define "drupal.databaseSecretName" -}}
-{{- default (include "drupal.databaseName" .) .Values.database.auth.existingSecret }}
+{{- include "drupal.databaseName" . }}
 {{- end }}
 
 {{- define "drupal.drupalClaimName" -}}

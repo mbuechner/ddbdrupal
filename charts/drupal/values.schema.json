@@ -210,7 +210,7 @@
         "basicAuth": {
           "type": "object",
           "title": "10 HTTP Basic Auth",
-          "description": "Aktiv, sobald Benutzer und Passwort gemeinsam gesetzt sind oder ein vorhandenes Secret gewaehlt ist.",
+          "description": "Aktiv, sobald Benutzer und Passwort gemeinsam gesetzt sind. Das Chart verwaltet das Secret.",
           "additionalProperties": false,
           "properties": {
             "greeting": {
@@ -221,20 +221,14 @@
             "username": {
               "type": "string",
               "title": "Benutzer",
-              "description": "Gemeinsam mit Passwort setzen; fuer produktive Systeme vorzugsweise ein Secret verwenden.",
+              "description": "Gemeinsam mit Passwort setzen.",
               "default": ""
             },
             "password": {
               "type": "string",
               "format": "password",
               "title": "Passwort",
-              "description": "Gemeinsam mit Benutzer setzen; fuer produktive Systeme vorzugsweise ein Secret verwenden.",
-              "default": ""
-            },
-            "existingSecret": {
-              "type": "string",
-              "title": "Vorhandenes Secret",
-              "description": "Secret mit den Schluesseln HTPASSWD_USER und HTPASSWD_PWD.",
+              "description": "Gemeinsam mit Benutzer setzen. Das Chart speichert den Wert in einem Secret.",
               "default": ""
             }
           }
@@ -253,12 +247,9 @@
             "autoTls": { "type": "boolean", "title": "Auto-TLS", "default": true },
             "timeout": { "type": "integer", "title": "Timeout in Sekunden", "default": 30, "minimum": 1 },
             "username": { "type": "string", "title": "Benutzer", "default": "noreply@example.org" },
-            "password": { "type": "string", "format": "password", "title": "Passwort", "description": "Fuer produktive Systeme vorzugsweise ein Secret verwenden.", "default": "" },
-            "existingSecret": { "type": "string", "title": "Vorhandenes Secret", "description": "Secret mit dem Schluessel SMTP_PASSWORD.", "default": "" },
+            "password": { "type": "string", "format": "password", "title": "Passwort", "description": "Das Chart speichert den Wert in einem Secret.", "default": "" },
             "from": { "type": "string", "format": "email", "title": "Absenderadresse", "default": "noreply@example.org" },
             "fromName": { "type": "string", "title": "Absendername", "default": "DDBpro" },
-            "clientHostname": { "type": "string", "title": "Client-Hostname", "default": "ddbpro.example.org" },
-            "clientHelo": { "type": "string", "title": "HELO-Name", "default": "ddbpro.example.org" },
             "allowHtml": { "type": "boolean", "title": "HTML-E-Mails erlauben", "default": true },
             "testAddress": { "type": "string", "format": "email", "title": "Testadresse", "default": "developer@example.org" },
             "rerouteAddress": { "type": "string", "title": "Alle E-Mails umleiten an", "description": "Nur fuer Testsysteme. Leer lassen, um normal an die eigentlichen Empfaenger zu senden.", "default": "" },
@@ -296,12 +287,6 @@
               "default": "/health",
               "pattern": "^/"
             },
-            "hostHeader": {
-              "type": "string",
-              "title": "HTTP-Host-Header",
-              "default": "localhost",
-              "minLength": 1
-            },
             "startup": {
               "$ref": "#/definitions/probeTiming"
             },
@@ -310,31 +295,6 @@
             },
             "liveness": {
               "$ref": "#/definitions/probeTiming"
-            }
-          }
-        },
-        "secret": {
-          "type": "object",
-          "title": "14 Erweitert: Drupal-Secret",
-          "description": "Erzeugt und behaelt den Hash Salt oder verwendet ein vorhandenes Secret mit dem Schluessel hash-salt.",
-          "additionalProperties": false,
-          "properties": {
-            "create": {
-              "type": "boolean",
-              "title": "Secret erzeugen",
-              "default": true
-            },
-            "existingSecret": {
-              "type": "string",
-              "title": "Vorhandenes Secret",
-              "default": ""
-            },
-            "hashSalt": {
-              "type": "string",
-              "format": "password",
-              "title": "Expliziter Hash Salt",
-              "description": "Leer erzeugt bei der Erstinstallation einen zufaelligen Wert.",
-              "default": ""
             }
           }
         },
@@ -364,41 +324,9 @@
     "database": {
       "type": "object",
       "title": "04 Erweitert: MariaDB",
-      "description": "Datenbank und Benutzer werden automatisch abgeleitet; leere Passwoerter werden bei der Erstinstallation erzeugt.",
+      "description": "Datenbank, Benutzer und Passwoerter werden vom Chart automatisch verwaltet.",
       "additionalProperties": false,
       "properties": {
-        "auth": {
-          "type": "object",
-          "title": "Zugangsdaten",
-          "description": "Passwoerter leer lassen, um sie zu erzeugen, oder ein vorhandenes Secret angeben.",
-          "additionalProperties": false,
-          "properties": {
-            "create": {
-              "type": "boolean",
-              "title": "Secret erzeugen",
-              "default": true
-            },
-            "existingSecret": {
-              "type": "string",
-              "title": "Vorhandenes Secret",
-              "default": ""
-            },
-            "password": {
-              "type": "string",
-              "format": "password",
-              "title": "Datenbankpasswort",
-              "description": "Leer erzeugt bei der Erstinstallation ein zufaelliges Passwort.",
-              "default": ""
-            },
-            "rootPassword": {
-              "type": "string",
-              "format": "password",
-              "title": "MariaDB-Root-Passwort",
-              "description": "Leer erzeugt bei der Erstinstallation ein zufaelliges Passwort.",
-              "default": ""
-            }
-          }
-        },
         "config": {
           "type": "object",
           "title": "Serverkonfiguration",
@@ -497,32 +425,6 @@
             }
           }
         },
-        "secret": {
-          "type": "object",
-          "title": "Zugangsdaten",
-          "description": "Erzeugt ein behaltenes Passwort oder verwendet ein vorhandenes Secret mit dem Schluessel password.",
-          "additionalProperties": false,
-          "properties": {
-            "create": {
-              "type": "boolean",
-              "title": "Secret erzeugen",
-              "default": true
-            },
-            "existingSecret": {
-              "type": "string",
-              "title": "Vorhandenes Secret",
-              "default": ""
-            },
-            "password": {
-              "type": "string",
-              "format": "password",
-              "title": "Redis-Passwort",
-              "description": "Leer erzeugt ein zufaelliges Passwort. Explizite Werte muessen 16 bis 128 ASCII-Buchstaben oder Ziffern enthalten.",
-              "default": "",
-              "pattern": "^$|^[A-Za-z0-9]{16,128}$"
-            }
-          }
-        },
         "persistence": {
           "$ref": "#/definitions/redisPersistence"
         },
@@ -574,32 +476,14 @@
         }
       }
     },
-    "imagePullSecrets": {
-      "type": "array",
-      "title": "07 Erweitert: Registry-Secrets",
-      "description": "Bereits vorhandene Image-Pull-Secrets fuer alle Pods.",
-      "default": [],
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["name"],
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Secret-Name",
-            "minLength": 1
-          }
-        }
-      }
-    },
     "storagePreparationResources": {
-      "title": "08 Erweitert: Storage-Init-Container",
+      "title": "07 Erweitert: Storage-Init-Container",
       "description": "Kleine explizite Requests und Limits fuer die kurzlebigen prepare-*-storage Init-Container; verhindert hohe, durch Namespace-LimitRanges injizierte Standardwerte.",
       "$ref": "#/definitions/resources"
     },
     "serviceAccounts": {
       "type": "object",
-      "title": "09 Erweitert: Service Accounts",
+      "title": "08 Erweitert: Service Accounts",
       "description": "Erzeugt getrennte Service Accounts fuer Drupal, Redis und MariaDB oder verwendet vorhandene Namen.",
       "additionalProperties": false,
       "properties": {
@@ -629,7 +513,7 @@
       }
     },
     "commonAnnotations": {
-      "title": "10 Erweitert: Gemeinsame Annotationen",
+      "title": "09 Erweitert: Gemeinsame Annotationen",
       "$ref": "#/definitions/annotations"
     }
   },

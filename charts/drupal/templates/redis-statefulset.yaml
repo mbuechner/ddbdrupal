@@ -33,10 +33,6 @@ spec:
       automountServiceAccountToken: false
       securityContext:
         {{- toYaml .Values.redis.podSecurityContext | nindent 8 }}
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       initContainers:
         - name: {{ include "drupal.componentName" (dict "root" . "component" "prepare-redis-storage") }}
           image: {{ printf "%s:%s" .Values.redis.image.repository .Values.redis.image.tag | quote }}

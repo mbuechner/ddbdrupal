@@ -33,8 +33,8 @@ data:
   SMTP_USERNAME: {{ .Values.drupal.smtp.username | quote }}
   SMTP_FROM: {{ .Values.drupal.smtp.from | quote }}
   SMTP_FROM_NAME: {{ .Values.drupal.smtp.fromName | quote }}
-  SMTP_CLIENT_HOSTNAME: {{ .Values.drupal.smtp.clientHostname | quote }}
-  SMTP_CLIENT_HELO: {{ .Values.drupal.smtp.clientHelo | quote }}
+  SMTP_CLIENT_HOSTNAME: {{ include "drupal.drupalExternalHost" . | quote }}
+  SMTP_CLIENT_HELO: {{ include "drupal.drupalExternalHost" . | quote }}
   SMTP_ALLOW_HTML: {{ ternary "yes" "no" .Values.drupal.smtp.allowHtml | quote }}
   SMTP_TEST_ADDRESS: {{ .Values.drupal.smtp.testAddress | quote }}
   SMTP_REROUTE_ADDRESS: {{ .Values.drupal.smtp.rerouteAddress | quote }}

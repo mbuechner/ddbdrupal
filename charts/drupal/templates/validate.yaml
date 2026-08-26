@@ -35,38 +35,11 @@
 {{- if or (and .Values.drupal.basicAuth.username (not .Values.drupal.basicAuth.password)) (and .Values.drupal.basicAuth.password (not .Values.drupal.basicAuth.username)) }}
 {{- fail "drupal.basicAuth.username and drupal.basicAuth.password must either both be set or both be empty" }}
 {{- end }}
-{{- if and .Values.drupal.basicAuth.existingSecret (or .Values.drupal.basicAuth.username .Values.drupal.basicAuth.password) }}
-{{- fail "drupal.basicAuth.existingSecret is mutually exclusive with drupal.basicAuth.username and drupal.basicAuth.password" }}
-{{- end }}
-{{- if and .Values.drupal.smtp.password .Values.drupal.smtp.existingSecret }}
-{{- fail "drupal.smtp.password and drupal.smtp.existingSecret are mutually exclusive" }}
-{{- end }}
 {{- if and .Values.drupal.smtp.enabled (not .Values.drupal.smtp.host) }}
 {{- fail "drupal.smtp.host is required when SMTP is enabled" }}
 {{- end }}
-{{- if and .Values.drupal.secret.create .Values.drupal.secret.existingSecret }}
-{{- fail "drupal.secret.create and drupal.secret.existingSecret are mutually exclusive" }}
-{{- end }}
-{{- if and (not .Values.drupal.secret.create) (not .Values.drupal.secret.existingSecret) }}
-{{- fail "drupal.secret.existingSecret is required when drupal.secret.create=false" }}
-{{- end }}
-{{- if and .Values.redis.secret.create .Values.redis.secret.existingSecret }}
-{{- fail "redis.secret.create and redis.secret.existingSecret are mutually exclusive" }}
-{{- end }}
-{{- if and (not .Values.redis.secret.create) (not .Values.redis.secret.existingSecret) }}
-{{- fail "redis.secret.existingSecret is required when redis.secret.create=false" }}
-{{- end }}
-{{- if and .Values.redis.secret.password (not (regexMatch "^[A-Za-z0-9]{16,128}$" .Values.redis.secret.password)) }}
-{{- fail "redis.secret.password must contain 16 to 128 ASCII letters or digits so it is safe in a Redis ACL" }}
-{{- end }}
-{{- if and .Values.database.auth.create .Values.database.auth.existingSecret }}
-{{- fail "database.auth.create and database.auth.existingSecret are mutually exclusive" }}
-{{- end }}
 {{- if not (has .Values.database.config.transactionIsolation (list "READ-UNCOMMITTED" "READ-COMMITTED" "REPEATABLE-READ" "SERIALIZABLE")) }}
 {{- fail "database.config.transactionIsolation must be one of READ-UNCOMMITTED, READ-COMMITTED, REPEATABLE-READ or SERIALIZABLE" }}
-{{- end }}
-{{- if and (not .Values.database.auth.create) (not .Values.database.auth.existingSecret) }}
-{{- fail "database.auth.existingSecret is required when database.auth.create=false" }}
 {{- end }}
 {{- if and .Values.drupal.persistence.create .Values.drupal.persistence.existingClaim }}
 {{- fail "drupal.persistence.create and drupal.persistence.existingClaim are mutually exclusive" }}
@@ -104,11 +77,11 @@
       {{- if and $item.requiresReadWriteMany (not (has "ReadWriteMany" $existingAccessModes)) }}
         {{- fail (printf "PersistentVolumeClaim %s/%s does not provide required ReadWriteMany access; migrate its data to an RWX-capable volume before installing or upgrading" $.Release.Namespace $item.name) -}}
       {{- end }}
-      {{- if and (eq $item.component "database") $.Release.IsInstall $.Values.database.auth.create -}}
+      {{- if and (eq $item.component "database") $.Release.IsInstall -}}
         {{- $databaseSecretName := include "drupal.databaseSecretName" $ -}}
         {{- $existingDatabaseSecret := lookup "v1" "Secret" $.Release.Namespace $databaseSecretName -}}
-        {{- if and (not $existingDatabaseSecret) (or (not $.Values.database.auth.password) (not $.Values.database.auth.rootPassword)) -}}
-          {{- fail (printf "retained MariaDB PVC %s/%s exists but Secret %s is missing; refusing to generate credentials that cannot match the initialized database. Supply the original password and rootPassword or set database.auth.create=false with an externally managed existingSecret" $.Release.Namespace $item.name $databaseSecretName) -}}
+        {{- if not $existingDatabaseSecret -}}
+          {{- fail (printf "retained MariaDB PVC %s/%s exists but its chart-managed Secret %s is missing; restore that Secret before reinstalling" $.Release.Namespace $item.name $databaseSecretName) -}}
         {{- end }}
       {{- end }}
     {{- end }}

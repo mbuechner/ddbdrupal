@@ -2,7 +2,7 @@ apiVersion: v2
 name: ddbdrupal
 description: Reusable Kubernetes and OpenShift environment for Drupal with Redis and MariaDB
 type: application
-version: 0.1.8
+version: 0.1.9
 appVersion: "11"
 kubeVersion: ">=1.25.0-0"
 maintainers:

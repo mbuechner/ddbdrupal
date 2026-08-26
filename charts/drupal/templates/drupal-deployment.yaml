@@ -27,6 +27,7 @@ spec:
       annotations:
         drupal.de/chart-version: {{ .Chart.Version | quote }}
         checksum/config: {{ include (print $.Template.BasePath "/drupal-configmap.yaml") . | sha256sum }}
+        checksum/basic-auth: {{ .Values.drupal.basicAuth | toJson | sha256sum }}
         checksum/smtp: {{ .Values.drupal.smtp | toJson | sha256sum }}
       {{- with .Values.drupal.podAnnotations }}
         {{- toYaml . | nindent 8 }}
@@ -36,10 +37,6 @@ spec:
       automountServiceAccountToken: false
       securityContext:
         {{- toYaml .Values.drupal.podSecurityContext | nindent 8 }}
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       initContainers:
         - name: {{ include "drupal.componentName" (dict "root" . "component" "wait-for-database") }}
           image: {{ printf "%s:%s" .Values.database.image.repository .Values.database.image.tag | quote }}
@@ -195,7 +192,7 @@ spec:
                   name: {{ include "drupal.redisSecretName" . }}
                   key: password
             - name: SMTP_PASSWORD
-              {{- if or .Values.drupal.smtp.password .Values.drupal.smtp.existingSecret }}
+              {{- if .Values.drupal.smtp.password }}
               valueFrom:
                 secretKeyRef:
                   name: {{ include "drupal.smtpSecretName" . }}

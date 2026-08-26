@@ -45,9 +45,9 @@ View bereit. Regelmäßig anzupassen sind insbesondere:
 - `drupal.basicAuth`
 - `drupal.smtp`
 
-Vorhandene Secrets für Basic Auth und SMTP benötigen die Schlüssel
-`HTPASSWD_USER`/`HTPASSWD_PWD` beziehungsweise `SMTP_PASSWORD`. Passwörter
-sollten nicht in öffentliche Values-Dateien geschrieben werden.
+Das Chart erzeugt und verwaltet alle Secrets. Passwörter für Basic Auth und
+SMTP werden direkt in den jeweiligen Bereichen eingegeben und sollten nicht in
+öffentliche Values-Dateien geschrieben werden.
 
 OpenShift setzt RWX-Storage und die VPA-CRD voraus. Erzeugte PVCs und Secrets
 bleiben bei `helm uninstall` standardmäßig erhalten.

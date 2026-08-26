@@ -35,11 +35,6 @@ verticalPodAutoscaler:
   # Empfehlungen enthalten Requests und proportional angepasste Limits.
   controlledValues: RequestsAndLimits
 
-# Optionale Registry-Secrets für alle Pods, z. B.:
-# imagePullSecrets:
-#   - name: ghcr-pull-secret
-imagePullSecrets: []
-
 # Die kurzlebigen Init-Container legen lediglich Verzeichnisse und kleine
 # Konfigurationsdateien auf den Volumes an. Explizite Requests verhindern, dass
 # eine Namespace-LimitRange dafür unverhältnismäßig große Defaults einsetzt.
@@ -121,15 +116,12 @@ drupal:
     importConfig: false
     rebuildCache: false
   basicAuth:
-    # Optionales extern verwaltetes Secret mit den Schlüsseln HTPASSWD_USER und
-    # HTPASSWD_PWD. Bei Verwendung müssen username und password leer sein.
+    # HTTP Basic Auth wird nur aktiviert, wenn username und password gemeinsam
+    # gesetzt sind. Das Chart verwaltet das daraus erzeugte Secret.
     greeting: ""
     username: ""
-    # Das Passwort nicht in öffentliche Values-Dateien eintragen. Ohne
-    # existingSecret erzeugt das Chart aus username/password das behaltene
-    # Secret <release>-drupal-http-auth.
+    # Das Passwort nicht in öffentliche Values-Dateien eintragen.
     password: ""
-    existingSecret: ""
   smtp:
     # Alle Werte werden unter ihren gleichnamigen SMTP_*-Variablen an den
     # Drupal-Container uebergeben. SMTP_PASSWORD wird als Secret behandelt.
@@ -142,13 +134,10 @@ drupal:
     timeout: 30
     username: noreply@example.org
     password: ""
-    # Optionales Secret mit dem Schluessel SMTP_PASSWORD. Bei Verwendung muss
-    # smtp.password leer bleiben.
-    existingSecret: ""
     from: noreply@example.org
     fromName: DDBpro
-    clientHostname: ddbpro.example.org
-    clientHelo: ddbpro.example.org
+    # SMTP_CLIENT_HOSTNAME und SMTP_CLIENT_HELO werden aus dem zentralen
+    # öffentlichen Host erzeugt.
     allowHtml: true
     testAddress: developer@example.org
     # Leer lassen, sofern ausgehende E-Mails nicht umgeleitet werden sollen.
@@ -174,9 +163,6 @@ drupal:
     # Bei aktivierter HTTP Basic Auth verwenden alle drei Probes automatisch die
     # Zugangsdaten aus dem HTTP-Auth-Secret für einen lokalen curl-Aufruf.
     path: /health
-    # HTTP-Host-Header für den lokalen Request. Nicht auf externalHost setzen:
-    # localhost ist bereits Bestandteil der automatisch erzeugten Trusted Hosts.
-    hostHeader: localhost
     startup:
       periodSeconds: 5
       timeoutSeconds: 2
@@ -189,14 +175,6 @@ drupal:
       periodSeconds: 20
       timeoutSeconds: 2
       failureThreshold: 3
-  secret:
-    # true erzeugt das Secret <release>-drupal. Bei false muss existingSecret
-    # gesetzt sein und den Schlüssel "hash-salt" enthalten. Erzeugte Secrets
-    # bleiben bei helm uninstall erhalten und werden erneut übernommen.
-    create: true
-    existingSecret: ""
-    # Leer: Bei der Erstinstallation zufällig erzeugen und bei Upgrades behalten.
-    hashSalt: ""
   persistence:
     # true erzeugt den PVC <release>-drupal. Bei false muss existingClaim gesetzt
     # sein.
@@ -253,16 +231,6 @@ redis:
       enabled: true
       # Regelmäßigen Import des oben angegebenen externen Tags aktivieren.
       scheduledImport: true
-  secret:
-    # Bei create=false muss existingSecret den Schlüssel "password" enthalten.
-    # Die Redis-ACL wird bei jedem Podstart daraus erzeugt, sodass Passwort und
-    # ACL nicht auseinanderlaufen können. Erzeugte Secrets bleiben bei
-    # helm uninstall erhalten und werden erneut übernommen.
-    create: true
-    existingSecret: ""
-    # Leer: Einmalig erzeugen. Ein gesetztes Passwort muss 16-128 Zeichen aus
-    # A-Z, a-z und 0-9 enthalten, damit die generierte Redis-ACL sicher bleibt.
-    password: ""
   persistence:
     # Der PVC wird als /data mit subPath "data" eingebunden. Redis nutzt AOF.
     create: true
@@ -321,18 +289,6 @@ database:
       enabled: true
       # Regelmäßigen Import des oben angegebenen externen Tags aktivieren.
       scheduledImport: true
-  auth:
-    # Bei create=false muss existingSecret die Schlüssel "database", "username",
-    # "password" und "root-password" enthalten. Bei erzeugten Secrets werden
-    # database und username aus Release/Deployment-Profil abgeleitet. Secrets
-    # bleiben bei helm uninstall erhalten und werden erneut übernommen.
-    create: true
-    existingSecret: ""
-    # Bei einer frischen Datenbank werden leere Passwörter einmalig erzeugt und
-    # bei Upgrades weiterverwendet. Bei einem behaltenen MariaDB-PVC ohne altes
-    # Secret sind die ursprünglichen Werte oder existingSecret verpflichtend.
-    password: ""
-    rootPassword: ""
   persistence:
     # Der PVC wird als /var/lib/mysql mit subPath "data" eingebunden.
     create: true

@@ -33,7 +33,7 @@ Die wichtigsten anwendungsspezifischen Bereiche sind:
 - `drupal.basicAuth`
 - `drupal.smtp`
 
-Basic-Auth-Secrets benötigen `HTPASSWD_USER` und `HTPASSWD_PWD`, SMTP-Secrets
-den Schlüssel `SMTP_PASSWORD`. Redis und MariaDB sind feste Chart-Bestandteile.
-Erzeugte PVCs und Secrets bleiben bei einer Deinstallation standardmäßig
-erhalten.
+Das Chart verwaltet alle Secrets selbstständig. Redis und MariaDB sind feste
+Chart-Bestandteile. Erzeugte PVCs und Secrets bleiben bei einer Deinstallation
+standardmäßig erhalten und können von demselben Release wieder übernommen
+werden.
