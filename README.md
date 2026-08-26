@@ -50,7 +50,9 @@ SMTP werden direkt in den jeweiligen Bereichen eingegeben und sollten nicht in
 öffentliche Values-Dateien geschrieben werden.
 
 OpenShift setzt RWX-Storage und die VPA-CRD voraus. Erzeugte PVCs und Secrets
-bleiben bei `helm uninstall` standardmäßig erhalten.
+bleiben bei `helm uninstall` standardmäßig erhalten. Vorhandene release-eigene
+PVCs werden unverändert wiederverwendet; die konfigurierte Größe gilt nur bei
+der ersten Anlage.
 
 Hinweise zur Veröffentlichung stehen in
 [docs/releasing.md](docs/releasing.md).

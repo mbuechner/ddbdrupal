@@ -176,8 +176,8 @@ drupal:
       timeoutSeconds: 2
       failureThreshold: 3
   persistence:
-    # true erzeugt den PVC <release>-drupal. Bei false muss existingClaim gesetzt
-    # sein.
+    # true erzeugt den PVC <release>-drupal nur, wenn er noch nicht existiert.
+    # Ein vorhandener release-eigener PVC wird unverändert weiterverwendet.
     create: true
     # true behält den erzeugten PVC bei helm uninstall. Eine Neuinstallation mit
     # demselben Release und Namespace übernimmt diesen PVC wieder.
@@ -187,6 +187,8 @@ drupal:
     # values-kubernetes.yaml für eine Einzelreplik auf ReadWriteOnce ändern.
     accessModes:
       - ReadWriteMany
+    # Gilt ausschließlich bei der ersten Anlage. Bestehende PVCs werden nicht
+    # automatisch vergrößert oder verkleinert.
     size: 10Gi
     # Leer verwendet die Standard-StorageClass des Clusters.
     storageClass: ""
@@ -232,7 +234,8 @@ redis:
       # Regelmäßigen Import des oben angegebenen externen Tags aktivieren.
       scheduledImport: true
   persistence:
-    # Der PVC wird als /data mit subPath "data" eingebunden. Redis nutzt AOF.
+    # Der PVC wird nur bei Bedarf erzeugt und als /data mit subPath "data"
+    # eingebunden. Ein vorhandener release-eigener PVC bleibt unverändert.
     create: true
     # true behält den erzeugten PVC bei helm uninstall und erlaubt seine erneute
     # Übernahme durch denselben Release-Namen im selben Namespace.
@@ -241,7 +244,9 @@ redis:
     # OpenShift verwendet einheitlich gemeinsam nutzbaren Speicher.
     accessModes:
       - ReadWriteMany
-    size: 1Gi
+    # Gilt ausschließlich bei der ersten Anlage. Bestehende PVCs werden nicht
+    # automatisch vergrößert oder verkleinert.
+    size: 2Gi
     # Leer verwendet die Standard-StorageClass des Clusters.
     storageClass: ""
   podAnnotations: {}
@@ -291,7 +296,8 @@ database:
       # Regelmäßigen Import des oben angegebenen externen Tags aktivieren.
       scheduledImport: true
   persistence:
-    # Der PVC wird als /var/lib/mysql mit subPath "data" eingebunden.
+    # Der PVC wird nur bei Bedarf erzeugt und als /var/lib/mysql mit subPath
+    # "data" eingebunden. Ein vorhandener release-eigener PVC bleibt unverändert.
     create: true
     # true behält den erzeugten PVC bei helm uninstall und erlaubt seine erneute
     # Übernahme durch denselben Release-Namen im selben Namespace.
@@ -300,6 +306,8 @@ database:
     # OpenShift verwendet einheitlich gemeinsam nutzbaren Speicher.
     accessModes:
       - ReadWriteMany
+    # Gilt ausschließlich bei der ersten Anlage. Bestehende PVCs werden nicht
+    # automatisch vergrößert oder verkleinert.
     size: 5Gi
     # Leer verwendet die Standard-StorageClass des Clusters.
     storageClass: ""

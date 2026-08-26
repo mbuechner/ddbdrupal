@@ -4,7 +4,13 @@
       (dict "enabled" .Values.database.persistence.create "existing" .Values.database.persistence.existingClaim "name" (include "drupal.databaseName" .) "component" "db" "persistence" .Values.database.persistence) -}}
 {{- range $claim := $claims }}
 {{- if and $claim.enabled (not $claim.existing) }}
+{{- $currentClaim := lookup "v1" "PersistentVolumeClaim" $.Release.Namespace $claim.name }}
 {{- include "drupal.assertAvailable" (dict "root" $ "apiVersion" "v1" "kind" "PersistentVolumeClaim" "name" $claim.name "allowAdoption" true) }}
+{{- if not $currentClaim }}
+{{- /*
+Only render a missing PVC. An existing, release-owned PVC is mounted by its
+stable name without reconciling size, access modes or StorageClass.
+*/}}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -28,5 +34,6 @@ spec:
     requests:
       storage: {{ $claim.persistence.size }}
 ---
+{{- end }}
 {{- end }}
 {{- end }}

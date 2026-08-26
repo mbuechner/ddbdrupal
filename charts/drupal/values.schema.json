@@ -768,6 +768,7 @@
         "size": {
           "type": "string",
           "title": "Speichergroesse",
+          "description": "Gilt nur bei der ersten Anlage. Ein vorhandener PVC wird unveraendert weiterverwendet.",
           "default": "10Gi",
           "minLength": 1
         },
@@ -814,7 +815,8 @@
         "size": {
           "type": "string",
           "title": "Speichergroesse",
-          "default": "1Gi",
+          "description": "Gilt nur bei der ersten Anlage. Ein vorhandener PVC wird unveraendert weiterverwendet.",
+          "default": "2Gi",
           "minLength": 1
         },
         "storageClass": {
@@ -860,6 +862,7 @@
         "size": {
           "type": "string",
           "title": "Speichergroesse",
+          "description": "Gilt nur bei der ersten Anlage. Ein vorhandener PVC wird unveraendert weiterverwendet.",
           "default": "5Gi",
           "minLength": 1
         },

@@ -75,7 +75,7 @@ spec:
             - --maxmemory
             - 768mb
             - --maxmemory-policy
-            - allkeys-lru
+            - volatile-lru
             # AOF ist die Persistenzquelle; zusätzliche periodische RDB-Saves
             # würden nur weitere Fork-/Copy-on-write-Spitzen verursachen.
             - --save

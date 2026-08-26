@@ -36,4 +36,5 @@ Die wichtigsten anwendungsspezifischen Bereiche sind:
 Das Chart verwaltet alle Secrets selbstständig. Redis und MariaDB sind feste
 Chart-Bestandteile. Erzeugte PVCs und Secrets bleiben bei einer Deinstallation
 standardmäßig erhalten und können von demselben Release wieder übernommen
-werden.
+werden. Vorhandene PVCs werden dabei weder vergrößert noch verkleinert; die
+konfigurierte Größe gilt nur für die erste Anlage.
