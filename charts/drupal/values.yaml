@@ -116,15 +116,15 @@ drupal:
     importConfig: false
     rebuildCache: false
   basicAuth:
-    # HTTP Basic Auth wird nur aktiviert, wenn username und password gemeinsam
-    # gesetzt sind. Das Chart verwaltet das daraus erzeugte Secret.
+    # Das Passwort wird bei der ersten Aktivierung generiert und ausschließlich
+    # im chartverwalteten Secret gespeichert.
+    enabled: false
     greeting: ""
     username: ""
-    # Das Passwort nicht in öffentliche Values-Dateien eintragen.
-    password: ""
   smtp:
     # Alle Werte werden unter ihren gleichnamigen SMTP_*-Variablen an den
-    # Drupal-Container uebergeben. SMTP_PASSWORD wird als Secret behandelt.
+    # Drupal-Container uebergeben. SMTP_PASSWORD wird ausschließlich direkt im
+    # chartverwalteten Secret gepflegt und ist kein Helm-Value.
     enabled: false
     host: smtp.example.org
     hostBackup: smtp-backup.example.org
@@ -133,7 +133,6 @@ drupal:
     autoTls: true
     timeout: 30
     username: noreply@example.org
-    password: ""
     from: noreply@example.org
     fromName: DDBpro
     # SMTP_CLIENT_HOSTNAME und SMTP_CLIENT_HELO werden aus dem zentralen

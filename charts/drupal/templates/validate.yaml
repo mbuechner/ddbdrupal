@@ -32,8 +32,8 @@
 {{- if not (has .Values.verticalPodAutoscaler.controlledValues (list "RequestsAndLimits" "RequestsOnly")) }}
 {{- fail "verticalPodAutoscaler.controlledValues must be RequestsAndLimits or RequestsOnly" }}
 {{- end }}
-{{- if or (and .Values.drupal.basicAuth.username (not .Values.drupal.basicAuth.password)) (and .Values.drupal.basicAuth.password (not .Values.drupal.basicAuth.username)) }}
-{{- fail "drupal.basicAuth.username and drupal.basicAuth.password must either both be set or both be empty" }}
+{{- if and .Values.drupal.basicAuth.enabled (not .Values.drupal.basicAuth.username) }}
+{{- fail "drupal.basicAuth.username is required when HTTP Basic Auth is enabled" }}
 {{- end }}
 {{- if and .Values.drupal.smtp.enabled (not .Values.drupal.smtp.host) }}
 {{- fail "drupal.smtp.host is required when SMTP is enabled" }}

@@ -210,9 +210,14 @@
         "basicAuth": {
           "type": "object",
           "title": "10 HTTP Basic Auth",
-          "description": "Aktiv, sobald Benutzer und Passwort gemeinsam gesetzt sind. Das Chart verwaltet das Secret.",
+          "description": "Das Passwort wird bei der ersten Aktivierung generiert und ausschliesslich im chartverwalteten Secret gespeichert.",
           "additionalProperties": false,
           "properties": {
+            "enabled": {
+              "type": "boolean",
+              "title": "HTTP Basic Auth aktivieren",
+              "default": false
+            },
             "greeting": {
               "type": "string",
               "title": "Begruessung",
@@ -221,14 +226,7 @@
             "username": {
               "type": "string",
               "title": "Benutzer",
-              "description": "Gemeinsam mit Passwort setzen.",
-              "default": ""
-            },
-            "password": {
-              "type": "string",
-              "format": "password",
-              "title": "Passwort",
-              "description": "Gemeinsam mit Benutzer setzen. Das Chart speichert den Wert in einem Secret.",
+              "description": "Bei aktivierter HTTP Basic Auth erforderlich.",
               "default": ""
             }
           }
@@ -247,7 +245,6 @@
             "autoTls": { "type": "boolean", "title": "Auto-TLS", "default": true },
             "timeout": { "type": "integer", "title": "Timeout in Sekunden", "default": 30, "minimum": 1 },
             "username": { "type": "string", "title": "Benutzer", "default": "noreply@example.org" },
-            "password": { "type": "string", "format": "password", "title": "Passwort", "description": "Das Chart speichert den Wert in einem Secret.", "default": "" },
             "from": { "type": "string", "format": "email", "title": "Absenderadresse", "default": "noreply@example.org" },
             "fromName": { "type": "string", "title": "Absendername", "default": "DDBpro" },
             "allowHtml": { "type": "boolean", "title": "HTML-E-Mails erlauben", "default": true },

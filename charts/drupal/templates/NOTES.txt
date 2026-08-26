@@ -12,3 +12,14 @@ Secrets. A reinstall with the same
 release name and namespace adopts retained PVCs and Secrets that still carry
 this release's Helm ownership metadata. Existing Secret data is reused so that
 persistent MariaDB and Redis data keep matching their credentials.
+
+Passwords are not Helm values. Manage the external SMTP password only in:
+  Secret {{ include "drupal.smtpSecretName" . }}, key SMTP_PASSWORD
+
+After changing that Secret, restart the Drupal Deployment:
+  oc -n {{ .Release.Namespace }} rollout restart deployment/{{ include "drupal.drupalName" . }}
+{{- if eq (include "drupal.httpAuthEnabled" .) "true" }}
+
+The generated HTTP Basic Auth password is stored in:
+  Secret {{ include "drupal.httpAuthSecretName" . }}, key HTPASSWD_PWD
+{{- end }}

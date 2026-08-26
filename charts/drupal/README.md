@@ -33,8 +33,7 @@ Die wichtigsten anwendungsspezifischen Bereiche sind:
 - `drupal.basicAuth`
 - `drupal.smtp`
 
-Das Chart verwaltet alle Secrets selbstständig. Redis und MariaDB sind feste
-Chart-Bestandteile. Erzeugte PVCs und Secrets bleiben bei einer Deinstallation
-standardmäßig erhalten und können von demselben Release wieder übernommen
-werden. Vorhandene PVCs werden dabei weder vergrößert noch verkleinert; die
-konfigurierte Größe gilt nur für die erste Anlage.
+Das Chart verwaltet alle Secrets selbstständig. Passwörter sind keine
+Helm-Values. Das Basic-Auth-Passwort wird generiert; das externe SMTP-Passwort
+wird im Secret `RELEASE-drupal-smtp` gepflegt. Siehe
+[Passwörter verwalten](PASSWORDS.md).

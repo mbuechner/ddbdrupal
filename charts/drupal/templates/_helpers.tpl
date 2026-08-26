@@ -168,7 +168,7 @@ check when lookup is unavailable (for example, client-side helm template).
 {{- end }}
 
 {{- define "drupal.httpAuthEnabled" -}}
-{{- if and .Values.drupal.basicAuth.username .Values.drupal.basicAuth.password -}}true{{- else -}}false{{- end -}}
+{{- if .Values.drupal.basicAuth.enabled -}}true{{- else -}}false{{- end -}}
 {{- end }}
 
 {{/* Use credentials for local Drupal probes whenever Nginx Basic Auth is enabled. */}}

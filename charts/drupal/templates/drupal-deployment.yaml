@@ -192,14 +192,10 @@ spec:
                   name: {{ include "drupal.redisSecretName" . }}
                   key: password
             - name: SMTP_PASSWORD
-              {{- if .Values.drupal.smtp.password }}
               valueFrom:
                 secretKeyRef:
                   name: {{ include "drupal.smtpSecretName" . }}
                   key: SMTP_PASSWORD
-              {{- else }}
-              value: ""
-              {{- end }}
           startupProbe:
             {{- include "drupal.drupalProbeHandler" . | nindent 12 }}
             periodSeconds: {{ .Values.drupal.probes.startup.periodSeconds }}

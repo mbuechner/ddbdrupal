@@ -45,14 +45,10 @@ View bereit. Regelmäßig anzupassen sind insbesondere:
 - `drupal.basicAuth`
 - `drupal.smtp`
 
-Das Chart erzeugt und verwaltet alle Secrets. Passwörter für Basic Auth und
-SMTP werden direkt in den jeweiligen Bereichen eingegeben und sollten nicht in
-öffentliche Values-Dateien geschrieben werden.
+Das Chart erzeugt und verwaltet alle Secrets. Passwörter sind keine
+Helm-Values: Basic Auth erhält bei der ersten Aktivierung ein generiertes
+Passwort; das externe SMTP-Passwort wird im Secret `RELEASE-drupal-smtp`
+gepflegt. Details stehen unter
+[Passwörter verwalten](charts/drupal/PASSWORDS.md).
 
-OpenShift setzt RWX-Storage und die VPA-CRD voraus. Erzeugte PVCs und Secrets
-bleiben bei `helm uninstall` standardmäßig erhalten. Vorhandene release-eigene
-PVCs werden unverändert wiederverwendet; die konfigurierte Größe gilt nur bei
-der ersten Anlage.
-
-Hinweise zur Veröffentlichung stehen in
-[docs/releasing.md](docs/releasing.md).
+OpenShift setzt RWX-Storage und die VPA-CRD voraus.
