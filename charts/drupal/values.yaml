@@ -205,13 +205,13 @@ drupal:
         - ALL
     runAsNonRoot: true
   resources:
-    # Sparsame Standardwerte; für Last und Datenmenge produktiv bemessen.
+    # Ausreichende Reserve für PHP, Drush und kurzzeitige Lastspitzen.
     requests:
-      cpu: 50m
-      memory: 128Mi
+      cpu: 100m
+      memory: 256Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: "1"
+      memory: 1Gi
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -258,13 +258,14 @@ redis:
         - ALL
     runAsNonRoot: true
   resources:
-    # Sparsame Ausgangswerte; insbesondere memory an Cachegröße/Last anpassen.
+    # maxmemory ist intern auf 768 MB begrenzt. Das deutlich höhere Limit lässt
+    # Reserve für Redis-Module, Client-Puffer und Copy-on-write beim AOF-Rewrite.
     requests:
-      cpu: 25m
-      memory: 64Mi
+      cpu: 100m
+      memory: 512Mi
     limits:
-      cpu: 250m
-      memory: 256Mi
+      cpu: "1"
+      memory: 2Gi
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -317,13 +318,13 @@ database:
         - ALL
     runAsNonRoot: true
   resources:
-    # Sparsame Ausgangswerte; für produktive Datenmengen gezielt erhöhen.
+    # Reserve für Buffer Pool, Verbindungen und Wartungsoperationen.
     requests:
-      cpu: 100m
-      memory: 256Mi
+      cpu: 250m
+      memory: 512Mi
     limits:
-      cpu: "1"
-      memory: 1Gi
+      cpu: "2"
+      memory: 2Gi
   nodeSelector: {}
   tolerations: []
   affinity: {}

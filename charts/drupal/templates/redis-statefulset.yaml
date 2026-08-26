@@ -69,6 +69,17 @@ spec:
             - redis-server
             - --appendonly
             - "yes"
+            # Redis dient als Cache. 768 MB Nutzdaten lassen innerhalb des
+            # 2-GiB-Containerlimits reichlich Reserve für Module, Puffer und
+            # Copy-on-write während eines AOF-Rewrites.
+            - --maxmemory
+            - 768mb
+            - --maxmemory-policy
+            - allkeys-lru
+            # AOF ist die Persistenzquelle; zusätzliche periodische RDB-Saves
+            # würden nur weitere Fork-/Copy-on-write-Spitzen verursachen.
+            - --save
+            - ""
             - --aclfile
             - /generated-redis-auth/users.acl
           env:
