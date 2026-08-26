@@ -97,3 +97,12 @@
 {{- if and $profileReleaseName (ne .Release.Name $profileReleaseName) }}
 {{- fail (printf "deploymentProfile %q requires release and namespace %q, got %q" .Values.deploymentProfile $profileReleaseName .Release.Name) }}
 {{- end }}
+{{- $releaseProfiles := dict
+      "ddbgo" "ddbgo-production"
+      "ddbgo-t" "ddbgo-test"
+      "ddbpro" "ddbpro-production"
+      "ddbpro-t" "ddbpro-test" -}}
+{{- $requiredProfile := get $releaseProfiles .Release.Name -}}
+{{- if and $requiredProfile (ne .Values.deploymentProfile $requiredProfile) }}
+{{- fail (printf "release %q requires deploymentProfile %q, got %q" .Release.Name $requiredProfile .Values.deploymentProfile) }}
+{{- end }}

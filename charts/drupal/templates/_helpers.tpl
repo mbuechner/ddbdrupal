@@ -29,9 +29,23 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 
 {{- define "drupal.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "drupal.name" .root | quote }}
-app.kubernetes.io/instance: {{ .root.Release.Name | quote }}
-app.kubernetes.io/component: {{ .component | quote }}
+{{- $labels := dict
+      "app.kubernetes.io/name" (include "drupal.name" .root)
+      "app.kubernetes.io/instance" .root.Release.Name
+      "app.kubernetes.io/component" .component -}}
+{{- $kind := "StatefulSet" -}}
+{{- if eq .component "drupal" -}}
+  {{- $kind = "Deployment" -}}
+{{- end -}}
+{{- $name := include "drupal.componentName" (dict "root" .root "component" .component) -}}
+{{- $existing := lookup "apps/v1" $kind .root.Release.Namespace $name -}}
+{{- if $existing -}}
+  {{- $existingLabels := dig "spec" "selector" "matchLabels" (dict) $existing -}}
+  {{- if $existingLabels -}}
+    {{- $labels = $existingLabels -}}
+  {{- end -}}
+{{- end -}}
+{{- toYaml $labels }}
 {{- end }}
 
 {{- define "drupal.protectionAnnotations" -}}
