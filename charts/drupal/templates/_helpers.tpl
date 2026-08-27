@@ -1,11 +1,6 @@
 {{/* Chart name. */}}
 {{- define "drupal.name" -}}
-{{- $products := dict
-      "ddbgo-production" "ddbgo"
-      "ddbgo-test" "ddbgo"
-      "ddbpro-production" "ddbpro"
-      "ddbpro-test" "ddbpro" -}}
-{{- get $products .Values.deploymentProfile | default .Chart.Name | trunc 63 | trimSuffix "-" }}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/* Resource base name: the requested naming scheme is the release name. */}}
@@ -98,67 +93,12 @@ check when lookup is unavailable (for example, client-side helm template).
 {{ include "drupal.componentName" (dict "root" . "component" "db") }}
 {{- end }}
 
-{{/* Curated deployment profiles; custom keeps repository and tag configurable. */}}
-{{- define "drupal.drupalImageRepository" -}}
-{{- $repositories := dict
-      "ddbgo-production" "ghcr.io/mbuechner/ddbgo"
-      "ddbgo-test" "ghcr.io/mbuechner/ddbgo"
-      "ddbpro-production" "ghcr.io/deutsche-digitale-bibliothek/ddbpro"
-      "ddbpro-test" "ghcr.io/deutsche-digitale-bibliothek/ddbpro" -}}
-{{- if eq .Values.deploymentProfile "custom" -}}
-{{- .Values.drupal.image.repository -}}
-{{- else -}}
-{{- get $repositories .Values.deploymentProfile -}}
-{{- end -}}
-{{- end }}
-
-{{- define "drupal.drupalImageTag" -}}
-{{- $tags := dict
-      "ddbgo-production" "tagged"
-      "ddbgo-test" "test"
-      "ddbpro-production" "tagged"
-      "ddbpro-test" "test" -}}
-{{- if eq .Values.deploymentProfile "custom" -}}
-{{- .Values.drupal.image.tag -}}
-{{- else -}}
-{{- get $tags .Values.deploymentProfile -}}
-{{- end -}}
-{{- end }}
-
-{{/* Database identity derived from deployment profile/release. */}}
-{{- define "drupal.databaseIdentity" -}}
-{{- $products := dict
-      "ddbgo-production" "ddbgo"
-      "ddbgo-test" "ddbgo"
-      "ddbpro-production" "ddbpro"
-      "ddbpro-test" "ddbpro" -}}
-{{- get $products .Values.deploymentProfile | default .Release.Name | replace "-" "_" | trunc 32 | trimSuffix "_" -}}
-{{- end }}
-
-{{- define "drupal.profileReleaseName" -}}
-{{- $releases := dict
-      "ddbgo-production" "ddbgo"
-      "ddbgo-test" "ddbgo-t"
-      "ddbpro-production" "ddbpro"
-      "ddbpro-test" "ddbpro-t" -}}
-{{- get $releases .Values.deploymentProfile -}}
-{{- end }}
-
-{{- define "drupal.drupalExternalHost" -}}
-{{- $hosts := dict
-      "ddbgo-production" "go.deutsche-digitale-bibliothek.de"
-      "ddbgo-test" "go-t.deutsche-digitale-bibliothek.de"
-      "ddbpro-production" "pro.deutsche-digitale-bibliothek.de"
-      "ddbpro-test" "pro-t.deutsche-digitale-bibliothek.de" -}}
-{{- get $hosts .Values.deploymentProfile | default .Values.drupal.externalHost -}}
-{{- end }}
-
 {{- define "drupal.databaseAuthUsername" -}}
-{{- include "drupal.databaseIdentity" . -}}
+{{- .Release.Name | replace "-" "_" | trunc 32 | trimSuffix "_" -}}
 {{- end }}
 
 {{- define "drupal.databaseAuthDatabase" -}}
-{{- printf "%sdb" (include "drupal.databaseIdentity" . | trunc 62 | trimSuffix "_") -}}
+{{- printf "%sdb" (include "drupal.databaseAuthUsername" . | trunc 62 | trimSuffix "_") -}}
 {{- end }}
 
 {{- define "drupal.drupalServiceAccountName" -}}
@@ -234,12 +174,8 @@ httpGet:
 
 {{/* Exact trusted-host regexes derived from names and literal host values. */}}
 {{- define "drupal.drupalTrustedHostPatterns" -}}
-{{- $hosts := list -}}
-{{- if .Values.drupal.config.trustedHosts.allowLocalhost -}}
-  {{- $hosts = append $hosts "localhost" -}}
-  {{- $hosts = append $hosts "127.0.0.1" -}}
-{{- end -}}
-{{- $hosts = append $hosts (include "drupal.drupalExternalHost" .) -}}
+{{- $hosts := list "localhost" "127.0.0.1" -}}
+{{- $hosts = append $hosts .Values.drupal.externalHost -}}
 {{- $hosts = append $hosts (include "drupal.drupalName" .) -}}
 {{- range .Values.drupal.config.trustedHosts.additionalHosts -}}
   {{- $hosts = append $hosts . -}}

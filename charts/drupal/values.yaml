@@ -1,10 +1,9 @@
 # Wiederverwendbare Drupal-Umgebung für Kubernetes und OpenShift.
 # Website-spezifische Einstellungen stehen in values-*.yaml.
 
-# Zentrale Profilauswahl für OpenShift Form View und CLI. Gepflegte Profile
-# bestimmen Release-Name, Domain und Drupal-Image gemeinsam. custom verwendet
-# die frei konfigurierbaren Werte unter drupal.
-deploymentProfile: custom
+# Optionaler Wert für app.kubernetes.io/name. Ressourcennamen werden weiterhin
+# ausschließlich aus dem Helm-Release-Namen abgeleitet.
+nameOverride: ""
 
 platform:
   # openshift erzeugt Route, ImageStreams und Image-Change-Trigger. kubernetes
@@ -58,19 +57,16 @@ serviceAccounts:
   databaseName: ""
 
 drupal:
-  # Nur für deploymentProfile=custom. Gepflegte Profile setzen Domain,
-  # Route/Ingress und Trusted-Host-Regel automatisch. Die internen
+  # Domain für Route/Ingress, Trusted-Host-Regel und SMTP-Client. Die internen
   # Health-Probes verwenden die öffentliche Domain nicht.
   externalHost: change-me.example.invalid
   # Recreate verhindert, dass während eines Rollouts zwei Drupal-Pods zugleich
   # Änderungen am gemeinsam verwendeten Dateispeicher durchführen.
   replicaCount: 1
   image:
-    # Austauschbares Drupal-Anwendungsimage. Es muss den in README.md
-    # dokumentierten Containervertrag erfüllen.
-    # Nur für deploymentProfile=custom; zugleich lauffähiger Standardwert.
+    # Austauschbares Drupal-Anwendungsimage. Es muss den im Deployment-Template
+    # abgebildeten Containervertrag erfüllen.
     repository: ghcr.io/mbuechner/ddbgo
-    # Nur für deploymentProfile=custom.
     tag: tagged
     # Die unterstützten Tags sind beweglich. OpenShift setzt beim automatischen
     # Rollout normalerweise zusätzlich eine eindeutige Digest-Referenz ein.
@@ -102,11 +98,10 @@ drupal:
     path: /
     pathType: Prefix
   config:
-    # TRUSTED_HOST_PATTERNS wird aus localhost, drupal.externalHost und dem
-    # Drupal-Ressourcennamen erzeugt. Alle Werte werden automatisch als exakte
-    # reguläre Ausdrücke escaped.
+    # TRUSTED_HOST_PATTERNS enthält immer localhost und 127.0.0.1 und wird um
+    # drupal.externalHost sowie den Drupal-Ressourcennamen ergänzt. Alle Werte
+    # werden automatisch als exakte reguläre Ausdrücke escaped.
     trustedHosts:
-      allowLocalhost: true
       # Zusätzliche literale Hostnamen; keine regulären Ausdrücke eintragen.
       additionalHosts: []
   startup:
@@ -146,7 +141,7 @@ drupal:
     keepalive: false
   dependencyChecks:
     # Init-Container lassen Drupal erst starten, wenn ein authentifiziertes
-    # SELECT 1 gegen MariaDB und – sofern aktiviert – Redis PING erfolgreich sind.
+    # SELECT 1 gegen MariaDB und Redis PING erfolgreich sind.
     retryIntervalSeconds: 5
     # Kleine, nur während des Pod-Starts benötigte Ressourcen für beide Checks.
     resources:
@@ -175,12 +170,11 @@ drupal:
       timeoutSeconds: 2
       failureThreshold: 3
   persistence:
-    # true erzeugt den PVC <release>-drupal nur, wenn er noch nicht existiert.
-    # Ein vorhandener release-eigener PVC wird unverändert weiterverwendet.
-    create: true
     # true behält den erzeugten PVC bei helm uninstall. Eine Neuinstallation mit
     # demselben Release und Namespace übernimmt diesen PVC wieder.
     retain: true
+    # Leer erzeugt <release>-drupal, sofern er noch nicht existiert. Ein Name
+    # bindet stattdessen einen bereits vorhandenen PVC ein.
     existingClaim: ""
     # OpenShift verwendet gemeinsam nutzbaren Speicher. Kubernetes kann dies in
     # values-kubernetes.yaml für eine Einzelreplik auf ReadWriteOnce ändern.
@@ -233,12 +227,11 @@ redis:
       # Regelmäßigen Import des oben angegebenen externen Tags aktivieren.
       scheduledImport: true
   persistence:
-    # Der PVC wird nur bei Bedarf erzeugt und als /data mit subPath "data"
-    # eingebunden. Ein vorhandener release-eigener PVC bleibt unverändert.
-    create: true
     # true behält den erzeugten PVC bei helm uninstall und erlaubt seine erneute
     # Übernahme durch denselben Release-Namen im selben Namespace.
     retain: true
+    # Leer erzeugt <release>-redis, sofern er noch nicht existiert. Ein Name
+    # bindet stattdessen einen bereits vorhandenen PVC ein.
     existingClaim: ""
     # OpenShift verwendet einheitlich gemeinsam nutzbaren Speicher.
     accessModes:
@@ -295,12 +288,11 @@ database:
       # Regelmäßigen Import des oben angegebenen externen Tags aktivieren.
       scheduledImport: true
   persistence:
-    # Der PVC wird nur bei Bedarf erzeugt und als /var/lib/mysql mit subPath
-    # "data" eingebunden. Ein vorhandener release-eigener PVC bleibt unverändert.
-    create: true
     # true behält den erzeugten PVC bei helm uninstall und erlaubt seine erneute
     # Übernahme durch denselben Release-Namen im selben Namespace.
     retain: true
+    # Leer erzeugt <release>-db, sofern er noch nicht existiert. Ein Name bindet
+    # stattdessen einen bereits vorhandenen PVC ein.
     existingClaim: ""
     # OpenShift verwendet einheitlich gemeinsam nutzbaren Speicher.
     accessModes:

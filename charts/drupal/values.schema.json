@@ -3,17 +3,17 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "deploymentProfile",
     "platform",
     "drupal"
   ],
   "properties": {
-    "deploymentProfile": {
+    "nameOverride": {
       "type": "string",
-      "title": "01 Deployment-Profil",
-      "description": "Waehlt Domain, Drupal-Image und erforderlichen Release-Namen gemeinsam. custom verwendet die frei konfigurierbaren Drupal-Werte.",
-      "enum": ["custom", "ddbgo-production", "ddbgo-test", "ddbpro-production", "ddbpro-test"],
-      "default": "custom"
+      "title": "01 Anwendungsname",
+      "description": "Optionaler Wert fuer app.kubernetes.io/name. Ressourcennamen werden aus dem Helm-Release-Namen erzeugt.",
+      "default": "",
+      "maxLength": 63,
+      "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
     },
     "platform": {
       "type": "object",
@@ -34,13 +34,13 @@
     "drupal": {
       "type": "object",
       "title": "03 Drupal-Anwendung",
-      "description": "Anwendungseinstellungen. Felder mit 'custom' werden bei einem gepflegten Profil ignoriert.",
+      "description": "Domain, Image und weitere Anwendungseinstellungen.",
       "additionalProperties": false,
       "properties": {
         "externalHost": {
           "type": "string",
-          "title": "01 custom: Oeffentlicher Host",
-          "description": "Nur mit deploymentProfile=custom: DNS-Hostname fuer Route oder Ingress und Drupals Trusted-Host-Regel.",
+          "title": "01 Oeffentlicher Host",
+          "description": "DNS-Hostname fuer Route oder Ingress und Drupals Trusted-Host-Regel.",
           "default": "change-me.example.invalid",
           "minLength": 4,
           "maxLength": 253,
@@ -48,14 +48,13 @@
         },
         "image": {
           "type": "object",
-          "title": "02 custom: Drupal-Image",
-          "description": "Nur mit deploymentProfile=custom. Gepflegte Profile setzen Repository und Tag automatisch.",
+          "title": "02 Drupal-Image",
+          "description": "Repository und Tag des Drupal-Anwendungsimages.",
           "additionalProperties": false,
           "properties": {
             "repository": {
               "type": "string",
               "title": "Image-Repository",
-              "description": "Nur mit deploymentProfile=custom verwendet.",
               "default": "ghcr.io/mbuechner/ddbgo",
               "minLength": 1,
               "pattern": "^[^\\s]+$"
@@ -63,7 +62,6 @@
             "tag": {
               "type": "string",
               "title": "Image-Tag",
-              "description": "Nur mit deploymentProfile=custom verwendet.",
               "default": "tagged",
               "minLength": 1,
               "pattern": "^[^\\s]+$"
@@ -162,11 +160,6 @@
               "description": "Keine regulaeren Ausdruecke eingeben; das Chart maskiert die Hostnamen automatisch.",
               "additionalProperties": false,
               "properties": {
-                "allowLocalhost": {
-                  "type": "boolean",
-                  "title": "localhost und 127.0.0.1 erlauben",
-                  "default": true
-                },
                 "additionalHosts": {
                   "type": "array",
                   "title": "Zusaetzliche Hostnamen",
@@ -736,11 +729,6 @@
       "description": "OpenShift-Default: ReadWriteMany. values-kubernetes.yaml verwendet fuer eine Einzelreplik ReadWriteOnce.",
       "additionalProperties": false,
       "properties": {
-        "create": {
-          "type": "boolean",
-          "title": "PVC erzeugen",
-          "default": true
-        },
         "retain": {
           "type": "boolean",
           "title": "PVC bei Deinstallation behalten",
@@ -749,6 +737,7 @@
         "existingClaim": {
           "type": "string",
           "title": "Vorhandener PVC",
+          "description": "Leer erzeugt <release>-drupal; ein Name bindet stattdessen einen vorhandenen PVC ein.",
           "default": ""
         },
         "accessModes": {
@@ -783,11 +772,6 @@
       "description": "Persistenter Speicher fuer Redis AOF.",
       "additionalProperties": false,
       "properties": {
-        "create": {
-          "type": "boolean",
-          "title": "PVC erzeugen",
-          "default": true
-        },
         "retain": {
           "type": "boolean",
           "title": "PVC bei Deinstallation behalten",
@@ -796,6 +780,7 @@
         "existingClaim": {
           "type": "string",
           "title": "Vorhandener PVC",
+          "description": "Leer erzeugt <release>-redis; ein Name bindet stattdessen einen vorhandenen PVC ein.",
           "default": ""
         },
         "accessModes": {
@@ -830,11 +815,6 @@
       "description": "Persistenter Speicher fuer die MariaDB-Datenbank.",
       "additionalProperties": false,
       "properties": {
-        "create": {
-          "type": "boolean",
-          "title": "PVC erzeugen",
-          "default": true
-        },
         "retain": {
           "type": "boolean",
           "title": "PVC bei Deinstallation behalten",
@@ -843,6 +823,7 @@
         "existingClaim": {
           "type": "string",
           "title": "Vorhandener PVC",
+          "description": "Leer erzeugt <release>-db; ein Name bindet stattdessen einen vorhandenen PVC ein.",
           "default": ""
         },
         "accessModes": {

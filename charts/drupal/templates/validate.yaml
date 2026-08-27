@@ -17,14 +17,14 @@
 {{- if lt (int .Values.drupal.dependencyChecks.retryIntervalSeconds) 1 }}
 {{- fail "drupal.dependencyChecks.retryIntervalSeconds must be at least 1" }}
 {{- end }}
-{{- if not (include "drupal.drupalImageRepository" .) }}
+{{- if not .Values.drupal.image.repository }}
 {{- fail "drupal.image.repository must not be empty" }}
 {{- end }}
-{{- if not (include "drupal.drupalImageTag" .) }}
+{{- if not .Values.drupal.image.tag }}
 {{- fail "drupal.image.tag must not be empty" }}
 {{- end }}
 {{- if and (eq .Values.platform.type "kubernetes") (eq .Values.redis.image.repository "docker.io/library/redis") (not (hasKey .Values.redis.podSecurityContext "runAsUser")) }}
-{{- fail "redis.podSecurityContext.runAsUser must be set for the official Redis image on Kubernetes; load values-kubernetes.yaml after the website profile" }}
+{{- fail "redis.podSecurityContext.runAsUser must be set for the official Redis image on Kubernetes; load values-kubernetes.yaml after the environment values file" }}
 {{- end }}
 {{- if not (has .Values.verticalPodAutoscaler.updateMode (list "Off" "Initial" "Recreate" "InPlaceOrRecreate" "InPlace" "Auto")) }}
 {{- fail "verticalPodAutoscaler.updateMode must be one of Off, Initial, Recreate, InPlaceOrRecreate, InPlace or Auto" }}
@@ -41,68 +41,35 @@
 {{- if not (has .Values.database.config.transactionIsolation (list "READ-UNCOMMITTED" "READ-COMMITTED" "REPEATABLE-READ" "SERIALIZABLE")) }}
 {{- fail "database.config.transactionIsolation must be one of READ-UNCOMMITTED, READ-COMMITTED, REPEATABLE-READ or SERIALIZABLE" }}
 {{- end }}
-{{- if and .Values.drupal.persistence.create .Values.drupal.persistence.existingClaim }}
-{{- fail "drupal.persistence.create and drupal.persistence.existingClaim are mutually exclusive" }}
-{{- end }}
-{{- if and (not .Values.drupal.persistence.create) (not .Values.drupal.persistence.existingClaim) }}
-{{- fail "drupal.persistence.existingClaim is required when drupal.persistence.create=false" }}
-{{- end }}
-{{- if and .Values.redis.persistence.create .Values.redis.persistence.existingClaim }}
-{{- fail "redis.persistence.create and redis.persistence.existingClaim are mutually exclusive" }}
-{{- end }}
-{{- if and (not .Values.redis.persistence.create) (not .Values.redis.persistence.existingClaim) }}
-{{- fail "redis.persistence.existingClaim is required when redis.persistence.create=false" }}
-{{- end }}
-{{- if and .Values.database.persistence.create .Values.database.persistence.existingClaim }}
-{{- fail "database.persistence.create and database.persistence.existingClaim are mutually exclusive" }}
-{{- end }}
-{{- if and (not .Values.database.persistence.create) (not .Values.database.persistence.existingClaim) }}
-{{- fail "database.persistence.existingClaim is required when database.persistence.create=false" }}
-{{- end }}
 {{- $persistentComponents := list
-      (dict "enabled" true "component" "drupal" "name" (include "drupal.drupalClaimName" .) "requiresReadWriteMany" (gt (int .Values.drupal.replicaCount) 1) "persistence" .Values.drupal.persistence)
-      (dict "enabled" true "component" "redis" "name" (include "drupal.redisClaimName" .) "requiresReadWriteMany" false "persistence" .Values.redis.persistence)
-      (dict "enabled" true "component" "database" "name" (include "drupal.databaseClaimName" .) "requiresReadWriteMany" false "persistence" .Values.database.persistence) -}}
+      (dict "component" "drupal" "name" (include "drupal.drupalClaimName" .) "requiresReadWriteMany" (gt (int .Values.drupal.replicaCount) 1) "persistence" .Values.drupal.persistence)
+      (dict "component" "redis" "name" (include "drupal.redisClaimName" .) "requiresReadWriteMany" false "persistence" .Values.redis.persistence)
+      (dict "component" "database" "name" (include "drupal.databaseClaimName" .) "requiresReadWriteMany" false "persistence" .Values.database.persistence) -}}
 {{- range $item := $persistentComponents }}
-  {{- if $item.enabled }}
-    {{- if eq (len $item.persistence.accessModes) 0 }}
-      {{- fail (printf "%s.persistence.accessModes must contain at least one access mode" $item.component) -}}
+  {{- if eq (len $item.persistence.accessModes) 0 }}
+    {{- fail (printf "%s.persistence.accessModes must contain at least one access mode" $item.component) -}}
+  {{- end }}
+  {{- if and $item.requiresReadWriteMany (not (has "ReadWriteMany" $item.persistence.accessModes)) }}
+    {{- fail (printf "%s.persistence.accessModes must contain ReadWriteMany when more than one Drupal replica is configured" $item.component) -}}
+  {{- end }}
+  {{- $existingClaim := lookup "v1" "PersistentVolumeClaim" $.Release.Namespace $item.name -}}
+  {{- if $existingClaim }}
+    {{- $existingAccessModes := dig "spec" "accessModes" (list) $existingClaim -}}
+    {{- if and $item.requiresReadWriteMany (not (has "ReadWriteMany" $existingAccessModes)) }}
+      {{- fail (printf "PersistentVolumeClaim %s/%s does not provide required ReadWriteMany access; migrate its data to an RWX-capable volume before installing or upgrading" $.Release.Namespace $item.name) -}}
     {{- end }}
-    {{- if and $item.requiresReadWriteMany (not (has "ReadWriteMany" $item.persistence.accessModes)) }}
-      {{- fail (printf "%s.persistence.accessModes must contain ReadWriteMany when more than one Drupal replica is configured" $item.component) -}}
-    {{- end }}
-    {{- $existingClaim := lookup "v1" "PersistentVolumeClaim" $.Release.Namespace $item.name -}}
-    {{- if $existingClaim }}
-      {{- $existingAccessModes := dig "spec" "accessModes" (list) $existingClaim -}}
-      {{- if and $item.requiresReadWriteMany (not (has "ReadWriteMany" $existingAccessModes)) }}
-        {{- fail (printf "PersistentVolumeClaim %s/%s does not provide required ReadWriteMany access; migrate its data to an RWX-capable volume before installing or upgrading" $.Release.Namespace $item.name) -}}
-      {{- end }}
-      {{- if and (eq $item.component "database") $.Release.IsInstall -}}
-        {{- $databaseSecretName := include "drupal.databaseSecretName" $ -}}
-        {{- $existingDatabaseSecret := lookup "v1" "Secret" $.Release.Namespace $databaseSecretName -}}
-        {{- if not $existingDatabaseSecret -}}
-          {{- fail (printf "retained MariaDB PVC %s/%s exists but its chart-managed Secret %s is missing; restore that Secret before reinstalling" $.Release.Namespace $item.name $databaseSecretName) -}}
-        {{- end }}
+    {{- if and (eq $item.component "database") $.Release.IsInstall -}}
+      {{- $databaseSecretName := include "drupal.databaseSecretName" $ -}}
+      {{- $existingDatabaseSecret := lookup "v1" "Secret" $.Release.Namespace $databaseSecretName -}}
+      {{- if not $existingDatabaseSecret -}}
+        {{- fail (printf "retained MariaDB PVC %s/%s exists but its chart-managed Secret %s is missing; restore that Secret before reinstalling" $.Release.Namespace $item.name $databaseSecretName) -}}
       {{- end }}
     {{- end }}
   {{- end }}
 {{- end }}
-{{- if not (include "drupal.drupalExternalHost" .) }}
+{{- if not .Values.drupal.externalHost }}
 {{- fail "drupal.externalHost must not be empty because it defines the Route or Ingress and trusted host" }}
 {{- end }}
 {{- if not (hasPrefix "/" .Values.drupal.probes.path) }}
 {{- fail "drupal.probes.path must start with /" }}
-{{- end }}
-{{- $profileReleaseName := include "drupal.profileReleaseName" . -}}
-{{- if and $profileReleaseName (ne .Release.Name $profileReleaseName) }}
-{{- fail (printf "deploymentProfile %q requires release and namespace %q, got %q" .Values.deploymentProfile $profileReleaseName .Release.Name) }}
-{{- end }}
-{{- $releaseProfiles := dict
-      "ddbgo" "ddbgo-production"
-      "ddbgo-t" "ddbgo-test"
-      "ddbpro" "ddbpro-production"
-      "ddbpro-t" "ddbpro-test" -}}
-{{- $requiredProfile := get $releaseProfiles .Release.Name -}}
-{{- if and $requiredProfile (ne .Values.deploymentProfile $requiredProfile) }}
-{{- fail (printf "release %q requires deploymentProfile %q, got %q" .Release.Name $requiredProfile .Values.deploymentProfile) }}
 {{- end }}

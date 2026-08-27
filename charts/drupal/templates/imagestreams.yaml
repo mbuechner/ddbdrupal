@@ -1,7 +1,7 @@
 {{- if eq .Values.platform.type "openshift" }}
 {{- $drupalImage := dict
-      "repository" (include "drupal.drupalImageRepository" .)
-      "tag" (include "drupal.drupalImageTag" .)
+      "repository" .Values.drupal.image.repository
+      "tag" .Values.drupal.image.tag
       "autoUpdate" .Values.drupal.image.autoUpdate -}}
 {{- $components := list
   (dict "enabled" true "component" "drupal" "name" (include "drupal.drupalName" .) "image" $drupalImage)

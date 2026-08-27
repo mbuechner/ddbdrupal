@@ -2,53 +2,21 @@
 
 Helm-Chart für Drupal mit MariaDB und Redis auf OpenShift oder Kubernetes.
 
-## Profile
-
-| Values-Datei | Release/Namespace | Host |
-| --- | --- | --- |
-| `values-ddbgo.yaml` | `ddbgo` | `go.deutsche-digitale-bibliothek.de` |
-| `values-ddbgo-test.yaml` | `ddbgo-t` | `go-t.deutsche-digitale-bibliothek.de` |
-| `values-ddbpro.yaml` | `ddbpro` | `pro.deutsche-digitale-bibliothek.de` |
-| `values-ddbpro-test.yaml` | `ddbpro-t` | `pro-t.deutsche-digitale-bibliothek.de` |
-
-Alternativ erlaubt `deploymentProfile: custom` eine freie Domain und ein
-eigenes Drupal-Image. Release-Name und Namespace müssen identisch sein.
-
 ## Installation
 
 ```sh
 helm upgrade --install RELEASE ./charts/drupal \
   --namespace RELEASE \
   --create-namespace \
-  --values ./charts/drupal/PROFILDATEI \
+  --values ./charts/drupal/UMGEBUNGSDATEI \
   --atomic \
   --timeout 15m
 ```
 
-Auf Kubernetes muss `values-kubernetes.yaml` zuletzt geladen werden:
+Auf Kubernetes zusätzlich `values-kubernetes.yaml` zuletzt laden.
 
-```sh
-helm upgrade --install ddbgo ./charts/drupal \
-  --namespace ddbgo \
-  --create-namespace \
-  --values ./charts/drupal/values-ddbgo.yaml \
-  --values ./charts/drupal/values-kubernetes.yaml
-```
+## Dokumentation
 
-## Konfiguration
-
-`values.schema.json` stellt im OpenShift Developer Catalog eine validierte Form
-View bereit. Regelmäßig anzupassen sind insbesondere:
-
-- `drupal.config.trustedHosts`
-- `drupal.startup`
-- `drupal.basicAuth`
-- `drupal.smtp`
-
-Das Chart erzeugt und verwaltet alle Secrets. Passwörter sind keine
-Helm-Values: Basic Auth erhält bei der ersten Aktivierung ein generiertes
-Passwort; das externe SMTP-Passwort wird im Secret `RELEASE-drupal-smtp`
-gepflegt. Details stehen unter
-[Passwörter verwalten](charts/drupal/PASSWORDS.md).
-
-OpenShift setzt RWX-Storage und die VPA-CRD voraus.
+- [Chart-Konfiguration](charts/drupal/values.yaml)
+- [Passwörter verwalten](charts/drupal/PASSWORDS.md)
+- [Releases erstellen](docs/releasing.md)

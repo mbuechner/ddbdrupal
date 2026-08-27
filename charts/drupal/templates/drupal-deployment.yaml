@@ -11,7 +11,7 @@ metadata:
   annotations:
     {{- include "drupal.protectionAnnotations" . | nindent 4 }}
     {{- if and (eq .Values.platform.type "openshift") .Values.drupal.image.autoUpdate.enabled }}
-    image.openshift.io/triggers: {{ include "drupal.imageTrigger" (dict "root" . "name" $name "tag" (include "drupal.drupalImageTag" .) "container" $name) | quote }}
+    image.openshift.io/triggers: {{ include "drupal.imageTrigger" (dict "root" . "name" $name "tag" .Values.drupal.image.tag "container" $name) | quote }}
     {{- end }}
 spec:
   replicas: {{ .Values.drupal.replicaCount }}
@@ -116,7 +116,7 @@ spec:
           resources:
             {{- toYaml .Values.drupal.dependencyChecks.resources | nindent 12 }}
         - name: {{ include "drupal.componentName" (dict "root" . "component" "prepare-drupal-storage") }}
-          image: {{ printf "%s:%s" (include "drupal.drupalImageRepository" .) (include "drupal.drupalImageTag" .) | quote }}
+          image: {{ printf "%s:%s" .Values.drupal.image.repository .Values.drupal.image.tag | quote }}
           imagePullPolicy: {{ .Values.drupal.image.pullPolicy }}
           command:
             - /bin/sh
@@ -131,7 +131,7 @@ spec:
               mountPath: /storage
       containers:
         - name: {{ $name }}
-          image: {{ printf "%s:%s" (include "drupal.drupalImageRepository" .) (include "drupal.drupalImageTag" .) | quote }}
+          image: {{ printf "%s:%s" .Values.drupal.image.repository .Values.drupal.image.tag | quote }}
           imagePullPolicy: {{ .Values.drupal.image.pullPolicy }}
           securityContext:
             {{- toYaml .Values.drupal.securityContext | nindent 12 }}

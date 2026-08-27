@@ -1,2 +1,8 @@
-# DDBpro test profile.
-deploymentProfile: ddbpro-test
+# DDBpro test environment.
+nameOverride: ddbpro
+
+drupal:
+  externalHost: pro-t.deutsche-digitale-bibliothek.de
+  image:
+    repository: ghcr.io/deutsche-digitale-bibliothek/ddbpro
+    tag: test

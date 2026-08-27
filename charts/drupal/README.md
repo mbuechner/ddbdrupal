@@ -2,38 +2,26 @@
 
 Installiert Drupal mit MariaDB und Redis auf OpenShift oder Kubernetes.
 
-## Profile
-
-| Values-Datei | Release/Namespace | Host |
-| --- | --- | --- |
-| `values-ddbgo.yaml` | `ddbgo` | `go.deutsche-digitale-bibliothek.de` |
-| `values-ddbgo-test.yaml` | `ddbgo-t` | `go-t.deutsche-digitale-bibliothek.de` |
-| `values-ddbpro.yaml` | `ddbpro` | `pro.deutsche-digitale-bibliothek.de` |
-| `values-ddbpro-test.yaml` | `ddbpro-t` | `pro-t.deutsche-digitale-bibliothek.de` |
-
-`deploymentProfile: custom` erlaubt eine freie Domain und ein eigenes
-Drupal-Image. Release-Name und Namespace müssen identisch sein.
-
-## Installation
-
 ```sh
 helm upgrade --install RELEASE . \
   --namespace RELEASE \
-  --values PROFILDATEI
+  --values UMGEBUNGSDATEI
 ```
 
-Für Kubernetes `values-kubernetes.yaml` als letzte Values-Datei ergänzen.
+Auf Kubernetes zusätzlich `values-kubernetes.yaml` zuletzt laden.
 
-## Konfiguration
+Beispiel für DDBgo Test auf OpenShift:
 
-Die wichtigsten anwendungsspezifischen Bereiche sind:
+```sh
+helm upgrade --install ddbgo-t . \
+  --namespace ddbgo-t \
+  --create-namespace \
+  --values values-ddbgo-test.yaml \
+  --atomic \
+  --timeout 15m
+```
 
-- `drupal.config.trustedHosts`
-- `drupal.startup`
-- `drupal.basicAuth`
-- `drupal.smtp`
+Weitere Informationen:
 
-Das Chart verwaltet alle Secrets selbstständig. Passwörter sind keine
-Helm-Values. Das Basic-Auth-Passwort wird generiert; das externe SMTP-Passwort
-wird im Secret `RELEASE-drupal-smtp` gepflegt. Siehe
-[Passwörter verwalten](PASSWORDS.md).
+- [Konfigurationswerte](values.yaml)
+- [Passwörter verwalten](PASSWORDS.md)

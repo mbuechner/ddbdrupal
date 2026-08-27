@@ -1,4 +1,4 @@
-# Zusätzlich zu einem Website-Profil laden.
+# Nach der jeweiligen Umgebungsdatei laden.
 platform:
   type: kubernetes
 

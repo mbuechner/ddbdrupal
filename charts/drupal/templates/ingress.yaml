@@ -1,5 +1,5 @@
 {{- if and (eq .Values.platform.type "kubernetes") .Values.drupal.ingress.enabled }}
-{{- $name := include "drupal.drupalExternalHost" . -}}
+{{- $name := .Values.drupal.externalHost -}}
 {{- include "drupal.assertAvailable" (dict "root" . "apiVersion" "networking.k8s.io/v1" "kind" "Ingress" "name" $name) }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -19,7 +19,7 @@ spec:
   ingressClassName: {{ . | quote }}
   {{- end }}
   rules:
-    - host: {{ include "drupal.drupalExternalHost" . | quote }}
+    - host: {{ .Values.drupal.externalHost | quote }}
       http:
         paths:
           - path: {{ .Values.drupal.ingress.path | quote }}

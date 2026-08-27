@@ -1,2 +1,8 @@
-# DDBgo production profile.
-deploymentProfile: ddbgo-production
+# DDBgo production environment.
+nameOverride: ddbgo
+
+drupal:
+  externalHost: go.deutsche-digitale-bibliothek.de
+  image:
+    repository: ghcr.io/mbuechner/ddbgo
+    tag: tagged

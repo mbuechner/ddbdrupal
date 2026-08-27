@@ -1,2 +1,8 @@
-# DDBgo test profile.
-deploymentProfile: ddbgo-test
+# DDBgo test environment.
+nameOverride: ddbgo
+
+drupal:
+  externalHost: go-t.deutsche-digitale-bibliothek.de
+  image:
+    repository: ghcr.io/mbuechner/ddbgo
+    tag: test

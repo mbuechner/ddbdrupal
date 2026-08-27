@@ -1,2 +1,8 @@
-# DDBpro production profile.
-deploymentProfile: ddbpro-production
+# DDBpro production environment.
+nameOverride: ddbpro
+
+drupal:
+  externalHost: pro.deutsche-digitale-bibliothek.de
+  image:
+    repository: ghcr.io/deutsche-digitale-bibliothek/ddbpro
+    tag: tagged
