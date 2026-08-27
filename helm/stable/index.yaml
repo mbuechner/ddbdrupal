@@ -9,7 +9,29 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.895459848Z"
+    created: "2026-08-27T09:28:05.853892012Z"
+    description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
+      and MariaDB
+    digest: f1bc1d9ecb0dd2f3bb788a0a3fe21593e88dbe06f0ca05917d7d4319d62b8bf7
+    kubeVersion: '>=1.25.0-0'
+    maintainers:
+    - email: m.buechner@dnb.de
+      name: Michael Büchner
+      url: https://github.com/mbuechner
+    name: ddbdrupal
+    type: application
+    urls:
+    - https://mbuechner.github.io/ddbdrupal/helm/stable/ddbdrupal-0.3.0.tgz
+    version: 0.3.0
+  - annotations:
+      charts.openshift.io/description: Reusable Kubernetes and OpenShift environment
+        for Drupal with Redis and MariaDB
+      charts.openshift.io/name: Drupal
+      charts.openshift.io/provider: Deutsche Digitale Bibliothek
+      drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
+    apiVersion: v2
+    appVersion: "11"
+    created: "2026-08-27T09:28:05.852718138Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: 0226f142f0c4eaec93afab83b581720439237c714925c5a52e5843d931760aaa
@@ -31,7 +53,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.894243676Z"
+    created: "2026-08-27T09:28:05.851516533Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: 6a9bf963f40cc5ec56d1afcbbb5862ccc84a43798717f811a1188c5d4d4bca8b
@@ -53,7 +75,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.893039206Z"
+    created: "2026-08-27T09:28:05.850246347Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: e4023ea12146217b2192d8ecbf4893a00b3df83cf3e190e15cba929aad9e0098
@@ -75,7 +97,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.879369354Z"
+    created: "2026-08-27T09:28:05.836569368Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: 4998b6ae5c545b6dd6b32bb746f1a425ee38267f9788f2f9bd48bd666845b290
@@ -97,7 +119,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.878126803Z"
+    created: "2026-08-27T09:28:05.835325251Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: 47b2b93a51b35a8ef0a574249c5adf35008fa899ad543c7d28b99e073a04d04e
@@ -119,7 +141,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.891706717Z"
+    created: "2026-08-27T09:28:05.848486873Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: 4a5b94cd867c0b7f238fd2607bf007a2af9195ef1fe3262cf0745d6ff06bbff4
@@ -141,7 +163,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.889319995Z"
+    created: "2026-08-27T09:28:05.846768499Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: 37f48366753c13a80c6800731fd848295d137a05929d7c96519edb5093016e8a
@@ -163,7 +185,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.888046426Z"
+    created: "2026-08-27T09:28:05.845489771Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: 7027486ba84a721013239fd1377a65f153b9fc44cd9823e484d5765263d4203d
@@ -185,7 +207,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.886730227Z"
+    created: "2026-08-27T09:28:05.84418252Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: 8998c58fcf82c43296c14bf4ddf2767caa01440cf2225b42d00c60fb6b7baf35
@@ -207,7 +229,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.885456839Z"
+    created: "2026-08-27T09:28:05.842890302Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: e0ca9c2ab452eb5de9d5c88de2cdc10529743d2ba31f1b78fd498c4b224cdba7
@@ -229,7 +251,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.883549633Z"
+    created: "2026-08-27T09:28:05.84113233Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: fcbbab6a9388d64a583e7dec68655d980aac89ba87610a6b8b4c4a89083060f2
@@ -251,7 +273,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.882039893Z"
+    created: "2026-08-27T09:28:05.839275773Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: 59220af443d2eb556464d54d90283278c01d143d8729f2862e2308977497a3c7
@@ -273,7 +295,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.880704568Z"
+    created: "2026-08-27T09:28:05.837930778Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: 4f2e1f7dcf31dbc165e34fb10a26064625f50cfbd3ad96ab7e13d985fa1d69f7
@@ -295,7 +317,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.875680734Z"
+    created: "2026-08-27T09:28:05.83399735Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: 8f0a2dc8a2e3dd3bac6155c0dab4b12709d7eb92b62c04714be3da443584da36
@@ -318,7 +340,7 @@ entries:
       drupal-chart.dev/maintainer-company: Deutsche Nationalbibliothek
     apiVersion: v2
     appVersion: "11"
-    created: "2026-08-27T07:08:07.896619414Z"
+    created: "2026-08-27T09:28:05.855067278Z"
     description: Reusable Kubernetes and OpenShift environment for Drupal with Redis
       and MariaDB
     digest: 095bcb58cb75d2ef9cb10d880712f4dec16b409e67ddbbd16de260421e8d7416
@@ -332,4 +354,4 @@ entries:
     urls:
     - https://mbuechner.github.io/ddbdrupal/helm/stable/drupal-0.1.1.tgz
     version: 0.1.1
-generated: "2026-08-27T07:08:07.874186743Z"
+generated: "2026-08-27T09:28:05.832388127Z"
