@@ -42,7 +42,6 @@ jobs:
             args=(
               "$CHART_DIR"
               --namespace test-release
-              --set deploymentProfile=custom
               --strict
             )
             if [[ -n "$profile" ]]; then
