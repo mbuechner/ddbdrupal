@@ -54,6 +54,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          openshift_render="$RUNNER_TEMP/drupal-openshift.yaml"
+          helm template ddbgo "$CHART_DIR" \
+            --namespace ddbgo \
+            --values "$CHART_DIR/values-ddbgo.yaml" >"$openshift_render"
+          if [[ "$(grep -c 'importMode: PreserveOriginal' "$openshift_render")" -ne 3 ]] || \
+             [[ "$(grep -c 'scheduled: true' "$openshift_render")" -ne 3 ]] || \
+             [[ "$(grep -c 'image.openshift.io/triggers:' "$openshift_render")" -ne 3 ]]; then
+            echo '::error::OpenShift auto-update imports or image-change triggers are incomplete.'
+            exit 1
+          fi
+
           for profile in \
             values-ddbgo.yaml \
             values-ddbgo-test.yaml \

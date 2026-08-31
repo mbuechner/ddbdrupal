@@ -78,6 +78,10 @@ drupal:
       # true: OpenShift prüft das externe Repository regelmäßig. false: Import
       # nur manuell, z. B. mit `oc import-image <release>-drupal -n <namespace>`.
       scheduledImport: true
+      # PreserveOriginal importiert den OCI-Index beziehungsweise die
+      # Multi-Arch-Manifestliste als Ganzes. Dadurch erkennt der ImageStream
+      # auch neue Releases moderner Registry-Images zuverlässig am Digest.
+      importMode: PreserveOriginal
   service:
     # Interner Service-Port und gleichzeitig Zielport der OpenShift Route.
     port: 8080
@@ -226,6 +230,7 @@ redis:
       enabled: true
       # Regelmäßigen Import des oben angegebenen externen Tags aktivieren.
       scheduledImport: true
+      importMode: PreserveOriginal
   persistence:
     # true behält den erzeugten PVC bei helm uninstall und erlaubt seine erneute
     # Übernahme durch denselben Release-Namen im selben Namespace.
@@ -287,6 +292,7 @@ database:
       enabled: true
       # Regelmäßigen Import des oben angegebenen externen Tags aktivieren.
       scheduledImport: true
+      importMode: PreserveOriginal
   persistence:
     # true behält den erzeugten PVC bei helm uninstall und erlaubt seine erneute
     # Übernahme durch denselben Release-Namen im selben Namespace.

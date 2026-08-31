@@ -32,6 +32,7 @@ spec:
         name: {{ printf "%s:%s" $component.image.repository $component.image.tag | quote }}
       importPolicy:
         scheduled: {{ $component.image.autoUpdate.scheduledImport }}
+        importMode: {{ $component.image.autoUpdate.importMode }}
       referencePolicy:
         type: Source
 {{- end }}

@@ -563,6 +563,13 @@
           "type": "boolean",
           "title": "Image regelmaessig importieren",
           "default": true
+        },
+        "importMode": {
+          "type": "string",
+          "title": "OCI-/Multi-Arch-Importmodus",
+          "description": "PreserveOriginal behaelt OCI-Indizes und Multi-Arch-Manifestlisten bei und ermoeglicht eine zuverlaessige Digest-Erkennung moderner Images.",
+          "enum": ["Legacy", "PreserveOriginal"],
+          "default": "PreserveOriginal"
         }
       }
     },
